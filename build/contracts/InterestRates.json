@@ -1,0 +1,191 @@
+{
+  "contractName": "InterestRates",
+  "abi": [
+    {
+      "inputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.5.16+commit.9c3226ce\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/Users/ioanaroceanu/Documents/Project/contracts/InterestRates.sol\":\"InterestRates\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/ioanaroceanu/Documents/Project/contracts/InterestRates.sol\":{\"keccak256\":\"0x6a096ddd846a2a053eede8d8ef560020b912d61e4c8d0557a7dd8d9f4035596d\",\"urls\":[\"bzz-raw://e68876d4e09dd00ca83697471d9a27c75b899782156311acf9e78511af4fce2a\",\"dweb:/ipfs/Qma45oth4TarMhVvHBUK3kQ2u2BduMNDrJSH5Zh2uKUJkr\"]}},\"version\":1}",
+  "bytecode": "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a7231582006791bed6169e5d1857704e8a6fe949cb67e682eac2ed8614488be6f7c00a2c664736f6c63430005100032",
+  "deployedBytecode": "0x6080604052600080fdfea265627a7a7231582006791bed6169e5d1857704e8a6fe949cb67e682eac2ed8614488be6f7c00a2c664736f6c63430005100032",
+  "sourceMap": "66:55:0:-;;;93:26;8:9:-1;5:2;;;30:1;27;20:12;5:2;93:26:0;66:55;;;;;;",
+  "deployedSourceMap": "66:55:0:-;;;;;",
+  "source": "// SPDX-License-Identifier: MIT\npragma solidity >=0.4.22 <0.8.0;\n\ncontract InterestRates {\n  constructor() public {\n  }\n}\n",
+  "sourcePath": "/Users/ioanaroceanu/Documents/Project/contracts/InterestRates.sol",
+  "ast": {
+    "absolutePath": "/Users/ioanaroceanu/Documents/Project/contracts/InterestRates.sol",
+    "exportedSymbols": {
+      "InterestRates": [
+        6
+      ]
+    },
+    "id": 7,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 1,
+        "literals": [
+          "solidity",
+          ">=",
+          "0.4",
+          ".22",
+          "<",
+          "0.8",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "32:32:0"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 6,
+        "linearizedBaseContracts": [
+          6
+        ],
+        "name": "InterestRates",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 4,
+              "nodeType": "Block",
+              "src": "114:5:0",
+              "statements": []
+            },
+            "documentation": null,
+            "id": 5,
+            "implemented": true,
+            "kind": "constructor",
+            "modifiers": [],
+            "name": "",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 2,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "104:2:0"
+            },
+            "returnParameters": {
+              "id": 3,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "114:0:0"
+            },
+            "scope": 6,
+            "src": "93:26:0",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 7,
+        "src": "66:55:0"
+      }
+    ],
+    "src": "32:90:0"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/ioanaroceanu/Documents/Project/contracts/InterestRates.sol",
+    "exportedSymbols": {
+      "InterestRates": [
+        6
+      ]
+    },
+    "id": 7,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 1,
+        "literals": [
+          "solidity",
+          ">=",
+          "0.4",
+          ".22",
+          "<",
+          "0.8",
+          ".0"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "32:32:0"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 6,
+        "linearizedBaseContracts": [
+          6
+        ],
+        "name": "InterestRates",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 4,
+              "nodeType": "Block",
+              "src": "114:5:0",
+              "statements": []
+            },
+            "documentation": null,
+            "id": 5,
+            "implemented": true,
+            "kind": "constructor",
+            "modifiers": [],
+            "name": "",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 2,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "104:2:0"
+            },
+            "returnParameters": {
+              "id": 3,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "114:0:0"
+            },
+            "scope": 6,
+            "src": "93:26:0",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 7,
+        "src": "66:55:0"
+      }
+    ],
+    "src": "32:90:0"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.16+commit.9c3226ce.Emscripten.clang"
+  },
+  "networks": {
+    "5777": {
+      "events": {},
+      "links": {},
+      "address": "0x697EBa6A92e3a4D6b113484dFd94a0d5E686469B",
+      "transactionHash": "0xbfccee057bba6cfdecc26926ac5c3881482c2e7b248053bf26dc135687edb969"
+    }
+  },
+  "schemaVersion": "3.3.2",
+  "updatedAt": "2020-11-09T14:11:00.242Z",
+  "networkType": "ethereum",
+  "devdoc": {
+    "methods": {}
+  },
+  "userdoc": {
+    "methods": {}
+  }
+}
