@@ -47,9 +47,9 @@ contract LiquidityPool {
     uint _slope1,
     uint _slope2,
     uint _spread,
-    uint _price) public onlyOwner{
+    uint _price) public{
       require(isContract(_token_address), "Can only create a contract if it is deployed and is a contract");
-      InterestVariables ivar = InterestVariables(0xaE036c65C649172b43ef7156b009c6221B596B8b);
+      InterestVariables ivar = InterestVariables(0x90A96BF14084Fa258c3B6E6BbAe53514e7Cd1768);
       ivar.createToken(_symbol, _token_address, _optimal_utilisation, _collateral_factor, _base_rate, _slope1, _slope2, _spread);
       uint borrowIR = ivar.borrowInterestRate(_token_address, 0);
       uint depositIR = ivar.depositInterestRate(_token_address, 0, borrowIR);
@@ -97,7 +97,7 @@ contract LiquidityPool {
     //make sure users only have deposits in one token
     require(usersBalance[user].tokenDeposited == address(0) || usersBalance[user].depositedAmount == 0, "Address already has a deposit");
     //make sure token is supported
-    require(tokensCoreData[tokenId].price != 0 && keccak256(bytes(tokensCoreData[tokenId].symbol)) == keccak256(bytes("")));
+    require(tokensCoreData[tokenId].price != 0 && keccak256(bytes(tokensCoreData[tokenId].symbol)) != keccak256(bytes("")));
     addToReserves(tokenId, amount, user, false);
     usersBalance[user].tokenDeposited = tokenId;
     usersBalance[user].depositedAmount = amount;

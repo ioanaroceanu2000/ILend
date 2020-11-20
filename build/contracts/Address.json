@@ -8134,12 +8134,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x06AbF94163726753387779f3Ece45030EeDD6D4A",
-      "transactionHash": "0x5213e2f7f43c44cc4639a0bf9d3a522f565e0a00aced1a35b36c74a172969991"
+      "address": "0x14fb49cd5248a72049C479892d1e1a27Ed5f69D1",
+      "transactionHash": "0x0b36447a3d01ca4d36520375b9a18926060bd0d8524b24515b11e724a401b847"
     }
   },
   "schemaVersion": "3.3.2",
-  "updatedAt": "2020-11-19T08:40:25.846Z",
+  "updatedAt": "2020-11-19T18:49:40.682Z",
   "networkType": "ethereum",
   "devdoc": {
     "details": "Collection of functions related to the address type",
