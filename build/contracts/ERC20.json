@@ -350,7 +350,7 @@
         "id": 312,
         "nodeType": "ImportDirective",
         "scope": 792,
-        "sourceUnit": 1721,
+        "sourceUnit": 2099,
         "src": "105:24:2",
         "symbolAliases": [],
         "unitAlias": ""
@@ -418,10 +418,10 @@
               "id": 317,
               "name": "SafeMath",
               "nodeType": "UserDefinedTypeName",
-              "referencedDeclaration": 1720,
+              "referencedDeclaration": 2098,
               "src": "1340:8:2",
               "typeDescriptions": {
-                "typeIdentifier": "t_contract$_SafeMath_$1720",
+                "typeIdentifier": "t_contract$_SafeMath_$2098",
                 "typeString": "library SafeMath"
               }
             },
@@ -2372,7 +2372,7 @@
                           "lValueRequested": false,
                           "memberName": "sub",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 1603,
+                          "referencedDeclaration": 1981,
                           "src": "5005:37:2",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$_t_string_memory_ptr_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -2780,7 +2780,7 @@
                           "lValueRequested": false,
                           "memberName": "add",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 1560,
+                          "referencedDeclaration": 1938,
                           "src": "5654:38:2",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -3177,7 +3177,7 @@
                           "lValueRequested": false,
                           "memberName": "sub",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 1603,
+                          "referencedDeclaration": 1981,
                           "src": "6361:38:2",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$_t_string_memory_ptr_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -3950,7 +3950,7 @@
                         "lValueRequested": false,
                         "memberName": "sub",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1603,
+                        "referencedDeclaration": 1981,
                         "src": "7297:21:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$_t_string_memory_ptr_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -4103,7 +4103,7 @@
                         "lValueRequested": false,
                         "memberName": "add",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1560,
+                        "referencedDeclaration": 1938,
                         "src": "7401:24:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -4716,7 +4716,7 @@
                         "lValueRequested": false,
                         "memberName": "add",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1560,
+                        "referencedDeclaration": 1938,
                         "src": "7987:16:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -4869,7 +4869,7 @@
                         "lValueRequested": false,
                         "memberName": "add",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1560,
+                        "referencedDeclaration": 1938,
                         "src": "8042:22:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -5583,7 +5583,7 @@
                         "lValueRequested": false,
                         "memberName": "sub",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1603,
+                        "referencedDeclaration": 1981,
                         "src": "8685:22:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$_t_string_memory_ptr_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -5682,7 +5682,7 @@
                         "lValueRequested": false,
                         "memberName": "sub",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1576,
+                        "referencedDeclaration": 1954,
                         "src": "8778:16:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -6858,7 +6858,7 @@
         "id": 312,
         "nodeType": "ImportDirective",
         "scope": 792,
-        "sourceUnit": 1721,
+        "sourceUnit": 2099,
         "src": "105:24:2",
         "symbolAliases": [],
         "unitAlias": ""
@@ -6926,10 +6926,10 @@
               "id": 317,
               "name": "SafeMath",
               "nodeType": "UserDefinedTypeName",
-              "referencedDeclaration": 1720,
+              "referencedDeclaration": 2098,
               "src": "1340:8:2",
               "typeDescriptions": {
-                "typeIdentifier": "t_contract$_SafeMath_$1720",
+                "typeIdentifier": "t_contract$_SafeMath_$2098",
                 "typeString": "library SafeMath"
               }
             },
@@ -8880,7 +8880,7 @@
                           "lValueRequested": false,
                           "memberName": "sub",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 1603,
+                          "referencedDeclaration": 1981,
                           "src": "5005:37:2",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$_t_string_memory_ptr_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -9288,7 +9288,7 @@
                           "lValueRequested": false,
                           "memberName": "add",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 1560,
+                          "referencedDeclaration": 1938,
                           "src": "5654:38:2",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -9685,7 +9685,7 @@
                           "lValueRequested": false,
                           "memberName": "sub",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 1603,
+                          "referencedDeclaration": 1981,
                           "src": "6361:38:2",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$_t_string_memory_ptr_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -10458,7 +10458,7 @@
                         "lValueRequested": false,
                         "memberName": "sub",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1603,
+                        "referencedDeclaration": 1981,
                         "src": "7297:21:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$_t_string_memory_ptr_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -10611,7 +10611,7 @@
                         "lValueRequested": false,
                         "memberName": "add",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1560,
+                        "referencedDeclaration": 1938,
                         "src": "7401:24:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -11224,7 +11224,7 @@
                         "lValueRequested": false,
                         "memberName": "add",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1560,
+                        "referencedDeclaration": 1938,
                         "src": "7987:16:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -11377,7 +11377,7 @@
                         "lValueRequested": false,
                         "memberName": "add",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1560,
+                        "referencedDeclaration": 1938,
                         "src": "8042:22:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -12091,7 +12091,7 @@
                         "lValueRequested": false,
                         "memberName": "sub",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1603,
+                        "referencedDeclaration": 1981,
                         "src": "8685:22:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$_t_string_memory_ptr_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -12190,7 +12190,7 @@
                         "lValueRequested": false,
                         "memberName": "sub",
                         "nodeType": "MemberAccess",
-                        "referencedDeclaration": 1576,
+                        "referencedDeclaration": 1954,
                         "src": "8778:16:2",
                         "typeDescriptions": {
                           "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
@@ -13376,12 +13376,12 @@
         }
       },
       "links": {},
-      "address": "0x4467E1C9cEE81271F6621678eB2705E6f65ED595",
-      "transactionHash": "0x220b383704a49b7b97fc536100a3f67b5b5300733006f450be8e702dc63b5a99"
+      "address": "0xDfa65fFAB2938123b799e2e2a08668C1d52179f7",
+      "transactionHash": "0x934414a3e5f6f3ec082ef13f1ae3c0a1170362499f6206eb4a40d5d5f8e19897"
     }
   },
   "schemaVersion": "3.3.2",
-  "updatedAt": "2020-11-19T18:49:40.677Z",
+  "updatedAt": "2020-12-20T13:38:16.193Z",
   "networkType": "ethereum",
   "devdoc": {
     "details": "Implementation of the {IERC20} interface. * This implementation is agnostic to the way tokens are created. This means that a supply mechanism has to be added in a derived contract using {_mint}. For a generic mechanism see {ERC20PresetMinterPauser}. * TIP: For a detailed writeup see our guide https://forum.zeppelin.solutions/t/how-to-implement-erc20-supply-mechanisms/226[How to implement supply mechanisms]. * We have followed general OpenZeppelin guidelines: functions revert instead of returning `false` on failure. This behavior is nonetheless conventional and does not conflict with the expectations of ERC20 applications. * Additionally, an {Approval} event is emitted on calls to {transferFrom}. This allows applications to reconstruct the allowance for all accounts just by listening to said events. Other implementations of the EIP may not emit these events, as it isn't required by the specification. * Finally, the non-standard {decreaseAllowance} and {increaseAllowance} functions have been added to mitigate the well-known issues around setting allowances. See {IERC20-approve}.",

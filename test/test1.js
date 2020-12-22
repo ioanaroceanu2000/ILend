@@ -25,26 +25,36 @@ contract('InterestVariables', () => {
   });
 });
 
+
 contract('LiquidityPool', () => {
-  it('should Deposit 4000 Weth into the contract address', async () => {
-    const contractInstance = await LiquidityPool.deployed();
-    var accounts = await web3.eth.getAccounts();
-
+  let contractInstance = null;
+  let accounts = null;
+  let add = null;
+  let tokenInstance = null;
+  // do this before running the tests
+  before(async () => {
+    contractInstance = await LiquidityPool.new();
+    accounts = await web3.eth.getAccounts();
+    console.log(contractInstance.address)
     //create token
-    var contractToken = await depolyToken('Weth', 'Weth');
-    const add = contractToken[0];
+    const contractToken = await depolyToken('Weth', 'Weth');
+    add = contractToken[0];
     const abi = contractToken[1];
-    await contractInstance.createToken('Weth',add,50, 70, 1, 7, 200, 2,490);
-    const tokenInstance = new web3.eth.Contract(abi,add);
+    tokenInstance = new web3.eth.Contract(abi,add);
+    var interest_contract_add = web3.utils.toChecksumAddress('0x44aEC21d315092525C05E305341bF43F5C8A989c');
+    await contractInstance.createToken('Weth',add,50, 70, 1, 7, 200, 2,490, interest_contract_add);
+    //var syl = await contractInstance.tokensCoreData(add);
 
+  });
+
+  it('should Deposit 4000 Weth into the contract address', async () => {
     //send tokens to adresses
     let value = web3.utils.toHex(1000000);
     await tokenInstance.methods.transfer(accounts[1], value).send({from: accounts[0]}).on('transactionHash', function(hash){
-        console.log(hash);
+        //console.log(hash);
       });
     var balance;
     await tokenInstance.methods.balanceOf(accounts[1]).call().then(res =>{ balance = res; });
-
 
     //give allowence to smart contract
     var nonce = await web3.eth.getTransactionCount(accounts[1]);
@@ -55,20 +65,52 @@ contract('LiquidityPool', () => {
       gasLimit: web3.utils.toHex(200000),
       data: tokenInstance.methods.approve(contractInstance.address, 500000).encodeABI()
     };
-    var privateKey = new Buffer('cf53514e0ab1765467e22a56f784d918318812aba425a51a4e0f04f9d745d3a2', 'hex');
+    // private key of the second account
+    var privateKey = new Buffer('821edafc174efdc42eff1919067150c350515e65b15861e1999343343e34360c', 'hex');
     var tx = new Tx(rawTx);
     tx.sign(privateKey);
     var serializedTx = tx.serialize();
     web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex')).on('receipt', console.log);
-    var allowence = await tokenInstance.methods.allowance(accounts[1],contractInstance.address).call();
-    
+
+
     //deposit from an address to contract
     await contractInstance.deposit(accounts[1], 4000, add);
 
     var blc = await contractInstance.usersBalance(accounts[1]);
+    var balance;
+    await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
+    var reserves = await contractInstance.getReserveBalance(add);
 
     assert.equal(blc.depositedAmount, 4000, "balance incorrect");
+    assert.equal(balance, 4000, "reserves balance incorrect");
+
   });
+
+  it('should switch from deposit to collateral', async () => {
+    //deposit from an address to contract
+    await contractInstance.switchDepositToCollateral(accounts[1], 2000, add);
+
+    var blc = await contractInstance.usersBalance(accounts[1]);
+    var balance;
+    await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
+
+    assert.equal(blc.collateralAmount, 2000, "collateral amount incorrect");
+    assert.equal(balance, 4000, "reserves balance incorrect");
+  });
+
+  it('should deposit collateral', async () => {
+    //deposit from an address to contract
+    await contractInstance.depositCollateral(accounts[1], 20000, add);
+
+    var blc = await contractInstance.usersBalance(accounts[1]);
+    var balance;
+    await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
+
+    // 20000 + 2000(swapped last time)
+    assert.equal(blc.collateralAmount, 22000, "collateral amount incorrect");
+    assert.equal(balance, 24000, "reserves balance incorrect");
+  });
+
 });
 
 // deploy the code for a token and return its address
