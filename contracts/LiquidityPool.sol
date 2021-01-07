@@ -139,7 +139,8 @@ contract LiquidityPool {
     require(usersBalance[user].tokenBorrowed == address(0) || usersBalance[user].borrowedAmount == 0, "Address already has a loan");
     // make sure it borrowes less than the collateral _collateral_factor
     address collateralToken = usersBalance[user].tokenCollateralised;
-    require(amount < tokensCoreData[collateralToken].collateral_factor * usersBalance[user].collateralAmount, "Cannot borrow over collateral factor");
+    uint maxHealtyAmount = (tokensCoreData[collateralToken].collateral_factor * usersBalance[user].collateralAmount* tokensCoreData[tokenId].price)/(tokensCoreData[collateralToken].price * 100);
+    require(amount < maxHealtyAmount, "Cannot borrow over collateral factor");
 
     usersBalance[user].tokenBorrowed = tokenId;
     usersBalance[user].borrowedAmount = amount;
@@ -259,7 +260,9 @@ contract LiquidityPool {
     // check if redeeming would not affect the health factor
     uint cummulatedInterest = getCummulatedInterestLoan(user); // cummulated amount owed
     address collateralToken = usersBalance[user].tokenCollateralised;
-    require(cummulatedInterest < tokensCoreData[collateralToken].collateral_factor * (usersBalance[user].collateralAmount - amount), "Health factor would be too low");
+    address borrowedToken = usersBalance[user].tokenBorrowed;
+    uint minHealthyColl =  (cummulatedInterest * 100 * tokensCoreData[collateralToken].price)/ (tokensCoreData[collateralToken].collateral_factor * tokensCoreData[collateralToken].price * tokensCoreData[borrowedToken].price);
+    require(usersBalance[user].collateralAmount - amount > minHealthyColl, "Health factor would be too low");
     // do changes in user's balances
     usersBalance[user].collateralAmount -= amount;
     // do changes in reserves data

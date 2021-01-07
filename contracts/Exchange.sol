@@ -25,7 +25,8 @@ contract Exchange{
   function getBalance(address token) public view returns(uint){
     // check if the pool was created
     require(keccak256(bytes(tokensData[token].symbol)) != keccak256(bytes("")), "Pool does not exist");
-    return ERC20(token).balanceOf(address(this));
+    uint balance = ERC20(token).balanceOf(address(this));
+    return balance;
   }
 
   function exchange(address token1, address token2, uint amountReceive, address payable user) public{

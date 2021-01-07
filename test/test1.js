@@ -36,7 +36,7 @@ contract('LiquidityPool', () => {
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT
-    contractInstance = await LiquidityPool.new(web3.utils.toChecksumAddress('0x91Df8cE8b943E791fA404aF055582D443088bcd9'));
+    contractInstance = await LiquidityPool.new(web3.utils.toChecksumAddress('0xb1a13D6E64E6E0454d2aeC2f10Ab6F8FE5eCF99a'));
     accounts = await web3.eth.getAccounts();
     console.log(contractInstance.address)
     //create token

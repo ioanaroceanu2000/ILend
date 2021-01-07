@@ -7,6 +7,7 @@ const ERC20 = artifacts.require("ERC20");
 const Address = artifacts.require("Address");
 const LiquidityPool = artifacts.require("LiquidityPool");
 const InterestVariables = artifacts.require("InterestVariables");
+const Exchange = artifacts.require("Exchange");
 
 
 module.exports = function (deployer) {
@@ -22,6 +23,7 @@ module.exports = function (deployer) {
     deployer.link(Address,LiquidityPool);
     deployer.link(ERC20, LiquidityPool);
     deployer.deploy(LiquidityPool, InterestVariables.address);
+    deployer.deploy(Exchange);
   });
 
 };
