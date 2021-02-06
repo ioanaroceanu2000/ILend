@@ -8131,15 +8131,21 @@
     "version": "0.6.2+commit.bacdbe57.Emscripten.clang"
   },
   "networks": {
+    "3": {
+      "events": {},
+      "links": {},
+      "address": "0xAB1A1b7139288e621B0F9Da068343199f946Fc14",
+      "transactionHash": "0x6b6ed03d0edec50111f3466db4192e0f11020e20b8cc8a93719d49dc7c18b435"
+    },
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x97EdAb91BA2090cC137A646c3303Ff8024C1C132",
-      "transactionHash": "0x11ac0a2d7a07f5029e22b440f21d0e529e1b1c5c27bf81b4a6748436037c98f5"
+      "address": "0x53C02cf4d75C7213E2b10c9E7834890338c6c037",
+      "transactionHash": "0xab767a247093b55e6372c5f2f571b7282b587ae9775e7cde09e414f05d7084e7"
     }
   },
   "schemaVersion": "3.3.2",
-  "updatedAt": "2021-01-04T12:34:22.322Z",
+  "updatedAt": "2021-02-06T09:32:12.819Z",
   "networkType": "ethereum",
   "devdoc": {
     "details": "Collection of functions related to the address type",

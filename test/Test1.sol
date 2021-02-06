@@ -22,12 +22,6 @@ contract Test1 {
 
     address add = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     contr.createToken('WETH',add,50, 70, 1, 7, 200, 2);
-
-    string memory symbol = contr.getSymbol(add);
-    uint utilisationRate = contr.getOptUtilisation(add);
-
-    Assert.equal(symbol, 'WETH', "Owner should have 10000 MetaCoin initially");
-    Assert.equal(uint(utilisationRate), 5000, "Owner should have 10000 MetaCoin initially");
   }
 
 }

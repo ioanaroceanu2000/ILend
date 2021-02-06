@@ -56,16 +56,27 @@ contract('Exchange', () => {
     await instanceDai.methods.balanceOf(accounts[0]).call().then(res =>{ balanceDai = res; });
 
     // run the exchange operation
-    var privateKey = 'a9ebebee66287ba9506854114b80578ff76b475fe9cb6196237f9371b6b4370d';
-    await givePermissionToContract(accounts[0], privateKey, exchange.address, 30, instanceEth, addEth);
+    var privateKey = 'c1595eb1ac52db31660c6f248c49a75e8e17882e15003334454c2655de78eddd';
+    await givePermissionToContract(accounts[0], privateKey, exchange.address, 300, instanceEth, addEth);
     await exchange.exchange(addEth, addDai, 30, accounts[0]);
-
+    console.log("Nothing here");
     var balanceEth2;
     await instanceEth.methods.balanceOf(accounts[0]).call().then(res =>{ balanceEth2 = res; });
     var balanceDai2;
     await instanceDai.methods.balanceOf(accounts[0]).call().then(res =>{ balanceDai2 = res; });
     assert.equal(balanceEth2,'99999999999999997970' , "Eth not out of wallet");
     assert.equal(balanceDai2,  '99999999999999727000', "Dai not out of wallet");
+  });
+  it('should change prices through array', async () => {
+    const ethData = await exchange.tokensData(addEth);
+    const daiData = await exchange.tokensData(addDai);
+    console.log(ethData.price);
+    console.log(daiData.price);
+    await exchange.updatePrices([addEth,addDai], [500, 2]);
+    const ethData2 = await exchange.tokensData(addEth);
+    const daiData2 = await exchange.tokensData(addDai);
+    assert.equal(ethData2.price.valueOf().toNumber(), 500, "Eth price wrong");
+    assert.equal(daiData2.price.valueOf().toNumber(),  2, "Dai price wrong");
   });
 });
 
@@ -100,6 +111,8 @@ async function giveTokenTo(account, owner, tokenInstance, amount){
 // give permission to contract to retreive tokens
 async function givePermissionToContract(account, privateKey, contractAddress, amount, tokenInstance, tokenAddress){
   var nonce = await web3.eth.getTransactionCount(account);
+  console.log("THIS IS THE NONCE");
+  console.log(nonce);
   const rawTx = {
     nonce: nonce,
     from: account,

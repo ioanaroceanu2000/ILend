@@ -5,6 +5,7 @@ const BigNumber = require('bignumber.js');
 const Tx = require('ethereumjs-tx').Transaction;
 const InterestVariables = artifacts.require("InterestVariables");
 const LiquidityPool = artifacts.require("LiquidityPool");
+const Exchange = artifacts.require("Exchange");
 const Token = artifacts.require("Token");
 const web3  = new Web3("http://localhost:7545");
 
@@ -28,6 +29,7 @@ contract('InterestVariables', () => {
 
 contract('LiquidityPool', () => {
   let contractInstance = null;
+  let exchangeInstance = null;
   let accounts = null;
   let add = null;
   let tokenInstance = null;
@@ -36,9 +38,12 @@ contract('LiquidityPool', () => {
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT
-    contractInstance = await LiquidityPool.new(web3.utils.toChecksumAddress('0xb1a13D6E64E6E0454d2aeC2f10Ab6F8FE5eCF99a'));
+    exchangeInstance = await Exchange.deployed();
+    let ivar_address = web3.utils.toChecksumAddress('0xA929fc9B42030B6aE983fb0a64c4cB0D36d83caD');
+    contractInstance = await LiquidityPool.deployed(ivar_address, exchangeInstance.address);
     accounts = await web3.eth.getAccounts();
-    console.log(contractInstance.address)
+    console.log(contractInstance.address);
+    console.log(exchangeInstance.address);
     //create token
     const contractToken = await depolyToken('Weth', 'Weth');
     add = contractToken[0];
@@ -54,6 +59,10 @@ contract('LiquidityPool', () => {
     tokenInstanceDai = new web3.eth.Contract(abiDai,addDai);
     await contractInstance.createToken('Dai',addDai,50, 70, 1, 7, 200, 2,1);
 
+    // put tokens on exchange
+    await exchangeInstance.createPool(add, 490, 'Weth');
+    await exchangeInstance.createPool(addDai, 1, 'Dai');
+
   });
 
   it('should Deposit 4000 Weth into the contract address', async () => {
@@ -61,7 +70,7 @@ contract('LiquidityPool', () => {
     await giveTokenTo(accounts[1], accounts[0], tokenInstance, 1000000);
 
     //give allowence to smart contract
-    var privateKey = '821edafc174efdc42eff1919067150c350515e65b15861e1999343343e34360c';
+    var privateKey = '9cb134e505157dc6914838b3ab4c2c4f2a1f7fc9ebf4a900109273f3d86290a1';
     await givePermissionToContract(accounts[1], privateKey, contractInstance.address, 500000, tokenInstance,add);
 
     //deposit from an address to contract
@@ -104,40 +113,32 @@ contract('LiquidityPool', () => {
 
   it('should borrow 1000', async () => {
     // get some tokens
-    await giveTokenTo(accounts[3], accounts[0], tokenInstanceDai, 3000);
+    await giveTokenTo(accounts[3], accounts[0], tokenInstanceDai, 600000);
     // give allowence to contract
-    var privateKey = 'cac5f9b3d3c37b61628f503af8d41c7d3c4f868a2291c4e02323cb00141e336e';
-    await givePermissionToContract(accounts[3], privateKey, contractInstance.address, 2500, tokenInstanceDai,addDai);
+    var privateKey = '7ce043e8568ca1b4e75a7f12707f9c768c716d7d9a911280680a145791edd9cc';
+    await givePermissionToContract(accounts[3], privateKey, contractInstance.address, 500000, tokenInstanceDai,addDai);
     // deposit collateral in Dai
-    await contractInstance.depositCollateral(accounts[3], 2000, addDai);
-
+    await contractInstance.depositCollateral(accounts[3], 500000, addDai);
     // account 2 borrows 1000 Weth (Utilisation should be 50)
-    await contractInstance.borrow(accounts[3], 1000, add);
-
+    await contractInstance.borrow(accounts[3], 500, add);
     var blc = await contractInstance.usersBalance(accounts[3]);
+
     var balance;
     await tokenInstance.methods.balanceOf(accounts[3]).call().then(res =>{ balance = res; });
-
     // 20000 + 2000(swapped last time)
-    assert.equal(blc.borrowedAmount, 1000, "borrowed amount incorrect");
-    assert.equal(balance, 1000, "reserves balance incorrect");
+    assert.equal(blc.borrowedAmount, 500, "borrowed amount incorrect");
+    assert.equal(balance, 500, "reserves balance incorrect");
   });
 
   /* CURRENT SITUATION:
   a1 collateral 22000 eth
   a1 deposit 2000 eth
-  a3 collateral 2000 Dai
-  a3 loan 1000 Eth
+  a3 collateral 500 000 Dai
+  a3 loan 500 Eth
   both eth and dai have 70% coll
   */
   it('should earn some interest', async () => {
     //deposit from an address to contract
-    let init_dep = await contractInstance.getUserInitDeposit(accounts[1]); // initial deposit
-    console.log(init_dep.valueOf().toNumber());
-    let init_ir = await contractInstance.getUserInitInterest(accounts[1]); // initial deposit
-    console.log(init_ir.valueOf().toNumber());
-    let tokenIR = await contractInstance.getUserInterestTotalCummulation(accounts[1]); // initial deposit
-    console.log(tokenIR.valueOf().toNumber());
 
     let ir = await contractInstance.getCummulatedInterestDeposit(accounts[1]);
     console.log(ir.valueOf().toNumber());
@@ -148,21 +149,21 @@ contract('LiquidityPool', () => {
 
   it('should repay some debt', async () => {
     // give permission to contract
-    var privateKey = 'cac5f9b3d3c37b61628f503af8d41c7d3c4f868a2291c4e02323cb00141e336e';
+    var privateKey = '7ce043e8568ca1b4e75a7f12707f9c768c716d7d9a911280680a145791edd9cc';
     await givePermissionToContract(accounts[3], privateKey, contractInstance.address, 1000, tokenInstance,add);
     // repay 900 Eth
-    await contractInstance.repay(accounts[3], 900);
+    await contractInstance.repay(accounts[3], 200);
     // check user balance and reserves
     var blc = await contractInstance.usersBalance(accounts[3]);
     var reserves = await contractInstance.tokensCoreData(add);
-    assert.equal(blc.borrowedAmount, 100, "Borrowed amount not left to be 100");
-    assert.equal(reserves.totalBorrowed, 100, "Reserves total borrowed not letf to 100");
+    assert.equal(blc.borrowedAmount, 300, "Borrowed amount not left to be 100");
+    assert.equal(reserves.totalBorrowed, 300, "Reserves total borrowed not letf to 100");
   });
   /* CURRENT SITUATION:
   a1 collateral 22000 eth
   a1 deposit 2000 eth
-  a3 collateral 2000 Dai
-  a3 loan 100 Eth
+  a3 collateral 500 000 Dai
+  a3 loan 300 Eth
   both eth and dai have 70% coll
   */
   it('should redeem some tokens deposited', async () => {
@@ -179,14 +180,66 @@ contract('LiquidityPool', () => {
 
   it('should redeem some tokens collateralised', async () => {
     // redeem 1000 Eth
-    await contractInstance.redeemCollateral(accounts[3], 1000);
+    await contractInstance.redeemCollateral(accounts[3], 200000);
     // check user balance and reserves
     var blc = await contractInstance.usersBalance(accounts[3]);
     var reserves = await contractInstance.tokensCoreData(addDai);
-    assert.equal(blc.collateralAmount, 1000, "Collateral amount not left to be 1000");
-    assert.equal(reserves.totalCollateral, 1000, "Reserves total deposited not letf to 1000");
+    assert.equal(blc.collateralAmount, 300000, "Collateral amount not left to be 1000");
+    assert.equal(reserves.totalCollateral, 300000, "Reserves total deposited not letf to 1000");
   });
 
+  // test this by tracking the health factor of account3
+  it('should change the price of Eth', async () => {
+    console.log("WE ARE TESTING CHANGING THE PRICE OF ETH");
+    var healthFactorBefore = await contractInstance.getHealthFactor(accounts[3]);
+    console.log("This is the health factor");
+    console.log(healthFactorBefore);
+    await exchangeInstance.updatePrice(add, 800);
+    await contractInstance.updateTokenPrice(add);
+    var healthFactorAfter = await contractInstance.getHealthFactor(accounts[3]);
+    console.log("This is the health factor");
+    console.log(healthFactorAfter);
+    assert.equal(healthFactorAfter, 875, "Health factor wgrongly calculated after price update");
+  });
+
+  it('liquidate an account', async () => {
+    // balance of liquidator before liquidation
+    var balanceEthBefore;
+    await tokenInstance.methods.balanceOf(accounts[0]).call().then(res =>{ balanceEthBefore = res; });
+    var balanceDaiBefore;
+    await tokenInstanceDai.methods.balanceOf(accounts[0]).call().then(res =>{ balanceDaiBefore = res; });
+
+    // calculate user's balances before liquidation
+    let details1 = await contractInstance.getUserDetails(accounts[3]);
+
+
+    // give permission to contract and liquidate
+    var privateKey = 'c1595eb1ac52db31660c6f248c49a75e8e17882e15003334454c2655de78eddd';
+    await givePermissionToContract(accounts[0], privateKey, contractInstance.address, 300, tokenInstance, add);
+    let ir = await contractInstance.getCummulatedInterestLoan(accounts[3])
+    let cummulatedLoan = ir.valueOf().toNumber();
+    await contractInstance.liquidate(accounts[3]);
+
+    // check balance of account3 for collateral
+    let details = await contractInstance.getUserDetails(accounts[3]);
+    let collateralLeft = details1[0] - (cummulatedLoan * 800 * 105)/100;
+    assert.equal(details[0], collateralLeft, "Collateral left not equal to the expected amount");
+    // check balance of account3 for loan
+    assert.equal(details[2], 0, "User still owes money after liquidation");
+
+    // check overall balance of account[0]
+    // balance of liquidator after liquidation
+    var balanceEthAfter;
+    await tokenInstance.methods.balanceOf(accounts[0]).call().then(res =>{ balanceEthAfter = res; });
+    var balanceDaiAfter;
+    await tokenInstanceDai.methods.balanceOf(accounts[0]).call().then(res =>{ balanceDaiAfter = res; });
+    console.log("Balance eth of liquidator BEFORE");
+    console.log(balanceEthBefore);
+    console.log("Balance eth of liquidator AFTER");
+    console.log(balanceEthAfter);
+    assert.equal(BigInt(balanceEthBefore) - BigInt(balanceEthAfter), 300, "Collateral amount not left to be 1000");
+    assert.equal(BigInt(balanceDaiAfter) - BigInt(balanceDaiBefore), (cummulatedLoan * 800 * 105)/100, "Reserves total deposited not letf to 1000");
+  });
 
 });
 

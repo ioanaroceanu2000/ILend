@@ -6,9 +6,15 @@ import './SafeMath.sol';
 contract InterestVariables {
 
   address private owner;
+  address public liquidityPoolAddress;
 
   modifier onlyOwner() {
-      require(msg.sender == owner);
+      require(msg.sender == owner, "Only owner can do function call");
+      _;
+  }
+
+  modifier onlyLiquidityPool() {
+      require(msg.sender == liquidityPoolAddress, "Only Liquidity pool can do function call");
       _;
   }
 
@@ -38,6 +44,10 @@ contract InterestVariables {
     owner = msg.sender;
   }
 
+  function setLiquidityPoolAddress(address add) public onlyOwner{
+    liquidityPoolAddress = add;
+  }
+
   function createToken(string memory _symbol,
     address _token_address,
     uint _optimal_utilisation,
@@ -52,34 +62,6 @@ contract InterestVariables {
     tokenIRcummulation[_token_address].cummulated_depositIR = 1e9;
     tokenIRcummulation[_token_address].cummulated_borrowIR = 1e9;
     tokenIRcummulation[_token_address].last_time = now;
-  }
-
-  function getSymbol(address id) public view returns(string memory){
-    return tokens[id].symbol;
-  }
-
-  function getOptUtilisation(address id) public view returns(uint){
-    return tokens[id].optimal_utilisation;
-  }
-
-  function getCollateralFactor(address id) public view returns(uint){
-    return tokens[id].collateral_factor;
-  }
-
-  function getBaseRate(address id) public view returns(uint){
-    return tokens[id].base_rate;
-  }
-
-  function getSlope1(address id) public view returns(uint){
-    return tokens[id].slope1;
-  }
-
-  function getSlope2(address id) public view returns(uint){
-    return tokens[id].slope2;
-  }
-
-  function getSpread(address id) public view returns(uint){
-    return tokens[id].spread;
   }
 
   function getIRDepositTotalCummulation(address token) public view returns(uint){
@@ -118,8 +100,7 @@ contract InterestVariables {
 
   // update the global variable interest rate
   // call this before utilisation rate changes
-  //!! change visibility
-  function compoundIR(address token, uint utilisationRate) public returns (bool){
+  function compoundIR(address token, uint utilisationRate) public onlyLiquidityPool returns (bool){
     // timestamp
     uint timenow = now;
 

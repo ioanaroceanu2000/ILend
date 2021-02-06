@@ -11,19 +11,21 @@ const Exchange = artifacts.require("Exchange");
 
 
 module.exports = function (deployer) {
-  deployer.deploy(InterestVariables).then(function (){
-    deployer.deploy(SafeMath);
+  deployer.deploy(InterestVariables).then(async () => {
+
+    await deployer.deploy(SafeMath);
     //deployer.deploy(Context);
     //deployer.deploy(IERC20);
     //deployer.link(IERC20, ERC20);
-    deployer.link(SafeMath, ERC20);
+    await deployer.link(SafeMath, ERC20);
     //deployer.link(Context, ERC20);
-    deployer.deploy(ERC20, "Ioana", "JO");
-    deployer.deploy(Address);
-    deployer.link(Address,LiquidityPool);
-    deployer.link(ERC20, LiquidityPool);
-    deployer.deploy(LiquidityPool, InterestVariables.address);
-    deployer.deploy(Exchange);
+    await deployer.deploy(ERC20, "Ioana", "JO");
+    await deployer.deploy(Address);
+    await deployer.link(Address,LiquidityPool);
+    await deployer.deploy(Exchange);
+    await deployer.deploy(LiquidityPool, InterestVariables.address, Exchange.address);
+    var ivar = await InterestVariables.deployed();
+    await ivar.setLiquidityPoolAddress(LiquidityPool.address);
   });
 
 };
