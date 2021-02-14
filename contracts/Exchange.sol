@@ -20,6 +20,7 @@ contract Exchange{
   struct Token{
     uint price;
     string symbol;
+    bool exchangeable;
   }
 
   function createPool(address token, uint _price, string memory _symbol) public{
@@ -27,6 +28,16 @@ contract Exchange{
     require(isContract(token), 'Token contract address is not a contract');
     tokensData[token].price = _price;
     tokensData[token].symbol =  _symbol;
+    tokensData[token].exchangeable = true;
+  }
+
+  function switchToUnexchangable(address token) public onlyOwner{
+    require(keccak256(bytes(tokensData[token].symbol)) != keccak256(bytes("")), "Pool does not exist");
+    tokensData[token].exchangeable = false;
+  }
+
+  function isExchangeable(address token) public view returns (bool){
+    return tokensData[token].exchangeable;
   }
 
   function updatePrice(address token, uint _price) public onlyOwner{
@@ -58,8 +69,9 @@ contract Exchange{
   }
 
   function exchange(address token1, address token2, uint amountReceive, address payable user) public{
+    require(tokensData[token1].exchangeable == true && tokensData[token2].exchangeable == true, "Token not exchangeable anymore");
     // check if the exchange has enough tokens to send
-    uint amountSend = amountReceive*(tokensData[token1].price/tokensData[token2].price);
+    uint amountSend = SafeMath.div(SafeMath.mul(amountReceive,tokensData[token1].price),tokensData[token2].price);
     require(getBalance(token2) >= amountSend, "Not enough to excgange");
     // check if a pool for token1 exists
     require(keccak256(bytes(tokensData[token1].symbol)) != keccak256(bytes("")), "Pool for token given does not exist");

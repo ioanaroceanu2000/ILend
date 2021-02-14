@@ -16,6 +16,7 @@ contract('Exchange', () => {
   let instanceEth = null;
   let instanceDai = null;
   let addDai = null;
+  const privateKeyAcc0 = 'b914330cc23191e0965fdbd02c08b3341ca07b8e231852240b46dc8da0d11ab4';
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT
@@ -56,8 +57,8 @@ contract('Exchange', () => {
     await instanceDai.methods.balanceOf(accounts[0]).call().then(res =>{ balanceDai = res; });
 
     // run the exchange operation
-    var privateKey = 'c1595eb1ac52db31660c6f248c49a75e8e17882e15003334454c2655de78eddd';
-    await givePermissionToContract(accounts[0], privateKey, exchange.address, 300, instanceEth, addEth);
+
+    await givePermissionToContract(accounts[0], privateKeyAcc0, exchange.address, 300, instanceEth, addEth);
     await exchange.exchange(addEth, addDai, 30, accounts[0]);
     console.log("Nothing here");
     var balanceEth2;

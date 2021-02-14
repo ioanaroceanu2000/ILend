@@ -8140,12 +8140,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x53C02cf4d75C7213E2b10c9E7834890338c6c037",
-      "transactionHash": "0xab767a247093b55e6372c5f2f571b7282b587ae9775e7cde09e414f05d7084e7"
+      "address": "0x26f71a8dff1ABdC53252DEC9c9420c4f0994bdE9",
+      "transactionHash": "0x483cfcd5aba83b466db0a0d895b1c20c11eff3571a80cd24d43a78d4d875823a"
     }
   },
   "schemaVersion": "3.3.2",
-  "updatedAt": "2021-02-06T09:32:12.819Z",
+  "updatedAt": "2021-02-13T15:36:38.018Z",
   "networkType": "ethereum",
   "devdoc": {
     "details": "Collection of functions related to the address type",

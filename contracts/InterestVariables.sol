@@ -57,10 +57,10 @@ contract InterestVariables {
     uint _slope2,
     uint _spread)
     public{
-    tokens[_token_address] = TknVariables(_symbol, _token_address,_optimal_utilisation*100, _collateral_factor*100, _base_rate*100, _slope1*100, _slope2*100, _spread*100);
+    tokens[_token_address] = TknVariables(_symbol, _token_address,_optimal_utilisation, _collateral_factor, _base_rate, _slope1, _slope2, _spread);
     // initialise tokne glogal variable of CUMMULATED IR
-    tokenIRcummulation[_token_address].cummulated_depositIR = 1e9;
-    tokenIRcummulation[_token_address].cummulated_borrowIR = 1e9;
+    tokenIRcummulation[_token_address].cummulated_depositIR = 1e12;
+    tokenIRcummulation[_token_address].cummulated_borrowIR = 1e12;
     tokenIRcummulation[_token_address].last_time = now;
   }
 
@@ -75,27 +75,31 @@ contract InterestVariables {
   }
 
   //returns ir% * 100 => returns 702 for 7.02% interest rate
-  function borrowInterestRate(address id, uint utilisationRate) public view returns(uint){
+  function depositInterestRate(address id, uint utilisationRate) public view returns(uint){
     TknVariables memory token = tokens[id];
-    if(utilisationRate*100 < token.optimal_utilisation){
-      return token.base_rate + token.slope1*(utilisationRate*10000/token.optimal_utilisation);
+    if(utilisationRate < token.optimal_utilisation){
+      return SafeMath.add(SafeMath.mul(token.base_rate, 100), SafeMath.div(SafeMath.mul(SafeMath.mul(token.slope1, utilisationRate), 100), token.optimal_utilisation));
     }else{
-      return token.base_rate + token.slope1 + (token.slope2/100)*( (utilisationRate*10000 - token.optimal_utilisation*100) / (10000 - token.optimal_utilisation));
+      uint firstPart = SafeMath.mul(SafeMath.add(token.base_rate,token.slope1), 100);
+      uint partAbove = SafeMath.mul(token.slope2, SafeMath.mul(100, SafeMath.sub(utilisationRate, token.optimal_utilisation)));
+      uint partBelow = SafeMath.sub(100, token.optimal_utilisation);
+      return SafeMath.add(firstPart, SafeMath.div(partAbove, partBelow));
     }
   }
 
   //returns ir% * 100 => returns 702 for 7.02% interest rate
-  function depositInterestRate(address id, uint utilisationRate) public view returns(uint){
-    uint borrow = borrowInterestRate(id, utilisationRate);
+  // //spread € {20,40}
+  function borrowInterestRate(address id, uint utilisationRate) public view returns(uint){
+    uint deposit = depositInterestRate(id, utilisationRate);
     TknVariables memory token = tokens[id];
-    return borrow + borrow*token.spread/10000;
+    return SafeMath.add(deposit, SafeMath.div(SafeMath.mul(deposit, token.spread),100));
   }
 
   //returns ir% * 100 => returns 702 for 7.02% interest rate
-  function depositInterestRate(address id, uint utilisationRate, uint borrowIR) public view returns(uint){
-    //uint borrow = borrowInterestRate(id, utilisationRate);
+  //spread € {20,40}
+  function borrowInterestRate(address id, uint utilisationRate, uint deposit) public view returns(uint){
     TknVariables memory token = tokens[id];
-    return borrowIR + borrowIR*token.spread/10000;
+    return SafeMath.add(deposit, SafeMath.div(SafeMath.mul(deposit, token.spread),100));
   }
 
   // update the global variable interest rate
@@ -108,19 +112,19 @@ contract InterestVariables {
     uint before_borrowIR = borrowInterestRate(token, utilisationRate);
     uint before_depositIR = depositInterestRate(token, utilisationRate);
 
-    uint PRECISION = 1e9;
+    uint PRECISION = 1e12;
     InterestCummulation memory tokenCummulation = tokenIRcummulation[token];
     // seconds since last update / seconds in a year -> to account for ir pre sec
     uint timeperiod = SafeMath.sub(timenow,tokenCummulation.last_time);
     uint256 UINT_MAX_VALUE = uint256(-1);
 
-    // check if value of cummulated deposit interest will exceed uint256/1e9 (this is always larger)
-    if(tokenCummulation.cummulated_depositIR*timeperiod*before_depositIR >= UINT_MAX_VALUE ){
+    // check if value of cummulated deposit interest will exceed uint256/1e12 (this is always larger)
+    if(SafeMath.mul(SafeMath.mul(tokenCummulation.cummulated_depositIR,timeperiod), before_depositIR) >= UINT_MAX_VALUE ){
       return false;
     }
 
     // compound cummulated interest rate
-    // these values are always *1e9
+    // these values are always *1e12
     if(timeperiod != 0 && before_borrowIR != 0 &&  before_depositIR != 0){
       tokenIRcummulation[token].cummulated_borrowIR = SafeMath.div(SafeMath.mul(tokenCummulation.cummulated_borrowIR,powerPrecision(before_borrowIR, timeperiod)), PRECISION);
       tokenIRcummulation[token].cummulated_depositIR = SafeMath.div(SafeMath.mul(tokenCummulation.cummulated_depositIR,powerPrecision(before_depositIR, timeperiod)), PRECISION);
@@ -131,12 +135,14 @@ contract InterestVariables {
     return true;
   }
 
-  // ( (ir+secundeAn)*Precision/secundeAn)^perioada => interest to cummulate over that time period multiplied by PRECISION
+  // ( (ir+secundeAn)*Precision/secundeAn)^perioada => interest to cummulate over that time period multiplied by PRECISION 10^12
   function powerPrecision(uint256 ir, uint256 power) internal view returns (uint256){
-    uint256 PRECISION = 1e9;
-    uint256 result = SafeMath.div(SafeMath.mul(SafeMath.add(ir,31556952), PRECISION), 31556952);
-    for(uint i = 0; i< power - 1;i++){
-      result = SafeMath.div(SafeMath.mul(result,SafeMath.add(ir,31556952)), 31556952);
+    uint256 PRECISION = 1e12;
+    uint256 secYear = 31556952;
+    uint secYear4 = SafeMath.mul(secYear, 10000); // - because IR is actualir*10^4
+    uint256 result = SafeMath.div(SafeMath.mul(SafeMath.add(ir,secYear4), PRECISION), secYear4);
+    for(uint i = 0; i< SafeMath.sub(power,1); i++){
+      result = SafeMath.div(SafeMath.mul(result,SafeMath.add(ir,secYear4)), secYear4);
     }
     return result;
   }
