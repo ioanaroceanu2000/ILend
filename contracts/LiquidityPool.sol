@@ -10,10 +10,10 @@ contract LiquidityPool {
 
   InterestVariables private ivar;
   Exchange private exchange;
+  mapping (address => bool) public trustedTkns;
 
 
   constructor(address ivar_add, address exchange_add) public {
-    require(Address.isContract(ivar_add) && Address.isContract(exchange_add), 'Interest Variables contract address is not a contract');
     ivar = InterestVariables(ivar_add);
     exchange = Exchange(exchange_add);
   }
@@ -38,7 +38,6 @@ contract LiquidityPool {
 
   struct TokenCoreData{
     uint price;
-    string symbol;
     uint utilisation;
     uint collateral_factor;
     uint totalBorrowed;
@@ -48,7 +47,7 @@ contract LiquidityPool {
   }
 
   modifier onlyOwner() {
-      require(msg.sender == owner, "Only owner can call transaction (LP)");
+      require(msg.sender == owner, "OWLP");
       _;
   }
 
@@ -59,18 +58,19 @@ contract LiquidityPool {
 
 
   // create token with all data
-  function createToken(string memory _symbol,
-    address _token_address,
+  function createToken(address _token_address,
     uint _optimal_utilisation,
     uint _collateral_factor,
     uint _base_rate,
     uint _slope1,
     uint _slope2,
     uint _spread,
-    uint _price) public{
-      require(Address.isContract(_token_address), 'Token contract address is not a contract');
-      ivar.createToken(_symbol, _token_address, _optimal_utilisation, _collateral_factor, _base_rate, _slope1, _slope2, _spread);
-      tokensData[_token_address] = TokenCoreData(_price, _symbol, 0, _collateral_factor, 0, 0, 0, true);
+    uint _price,
+    bool truested) public{
+      require(Address.isContract(_token_address), 'Not a contract');
+      ivar.createToken(_token_address, _optimal_utilisation, _collateral_factor, _base_rate, _slope1, _slope2, _spread);
+      tokensData[_token_address] = TokenCoreData(_price, 0, _collateral_factor, 0, 0, 0, true);
+      trustedTkns[_token_address] = truested;
   }
 
   // discards all loan details when borrowed token is NOT exchangable anymore
@@ -79,12 +79,12 @@ contract LiquidityPool {
     if(tokensData[tokenBorrowed].exchangeable == false && tokenBorrowed != address(0)){
       // delete from reserves registers
       tokensData[tokenBorrowed].totalBorrowed = SafeMath.sub(tokensData[tokenBorrowed].totalBorrowed, usersBalance[user].borrowedAmount);
-      address tokenCollateralised = usersBalance[user].tokenCollateralised;
-      tokensData[tokenCollateralised].totalCollateral = SafeMath.sub(tokensData[tokenCollateralised].totalCollateral, usersBalance[user].collateralAmount);
+      address tokenColl = usersBalance[user].tokenCollateralised;
+      tokensData[tokenColl].totalCollateral = SafeMath.sub(tokensData[tokenColl].totalCollateral, usersBalance[user].collateralAmount);
       // delete user's loan and collateral
       usersBalance[user] = UserBalance(usersBalance[user].depositedAmount, usersBalance[user].init_interest_deposit, usersBalance[user].cummulated_ir_deposit, usersBalance[user].tokenDeposited, 0, address(0), 0, 0, 0, address(0));
       // compound interest and update utilisation for the borrowed token
-      updateInterestRate(user, tokenBorrowed, tokensData[tokenBorrowed].utilisation);
+      updateInterestRate(tokenBorrowed, tokensData[tokenBorrowed].utilisation);
       return true;
     }
     return false;
@@ -92,20 +92,16 @@ contract LiquidityPool {
 
   // update prices from the exchange
   function updateTokenPrice(address token) public{
-    uint oldPrice = tokensData[token].price;
     tokensData[token].price = exchange.getPrice(token);
   }
 
   function checkExchangeability(address token) public{
-    if (exchange.isExchangeable(token) == false){
-      tokensData[token].exchangeable = false;
-    }
+    tokensData[token].exchangeable = exchange.isExchangeable(token);
   }
 
-
   // cummulate interest rate for the token
-  function updateInterestRate(address user, address token, uint oldUtilisationRate) internal{
-    bool updated = ivar.compoundIR(token, oldUtilisationRate);
+  function updateInterestRate(address token, uint oldUtilisationRate) internal{
+    ivar.compoundIR(token, oldUtilisationRate);
     // if not updated means that the compounded IR exceeds uint
     tokensData[token].utilisation = SafeMath.div(SafeMath.mul(tokensData[token].totalBorrowed, 100), tokensData[token].totalDeposited) ;
   }
@@ -132,15 +128,11 @@ contract LiquidityPool {
     }
   }
 
-  function getReserveBalance(address tokenId) public view returns(uint){
-    return ERC20(tokenId).balanceOf(address(this));
-  }
-
   function deposit(address payable user, uint amount, address tokenId) public{
     //make sure users only have deposits in one token
-    require(usersBalance[user].tokenDeposited == tokenId || usersBalance[user].depositedAmount == 0, "Address already has a deposit");
+    require(usersBalance[user].tokenDeposited == tokenId || usersBalance[user].depositedAmount == 0, "Already has a deposit");
     //make sure token is supported
-    require(keccak256(bytes(tokensData[tokenId].symbol)) != keccak256(bytes("")), "Token does not have LP");
+    require(tokensData[tokenId].price != 0, "Not supported");
 
     // make sure token is exchangeable
     checkExchangeability(tokenId);
@@ -150,7 +142,7 @@ contract LiquidityPool {
     }
 
     addToReserves(tokenId, amount, user, false, false);
-    updateInterestRate(user,tokenId,tokensData[tokenId].utilisation);
+    updateInterestRate(tokenId,tokensData[tokenId].utilisation);
     usersBalance[user].tokenDeposited = tokenId;
     usersBalance[user].depositedAmount = SafeMath.add(amount, usersBalance[user].depositedAmount);
     usersBalance[user].cummulated_ir_deposit = SafeMath.add(amount, getCummulatedInterestDeposit(user));
@@ -159,7 +151,7 @@ contract LiquidityPool {
 
   function borrow(address payable user, uint amount, address tokenId) public{
     //make sure token is supported
-    require(keccak256(bytes(tokensData[tokenId].symbol)) != keccak256(bytes("")), "Token does not have LP");
+    require(tokensData[tokenId].price != 0, "Not supported");
 
     // make sure token is exchangeable
     checkExchangeability(tokenId);
@@ -171,7 +163,7 @@ contract LiquidityPool {
     // make sure total borrow plus the amount to be borrowed is less than totalDeposited
     require(tokensData[tokenId].totalDeposited >= SafeMath.add(tokensData[tokenId].totalBorrowed, amount), "Borrow => overborrowings");
     //make sure users only have borrowings in one token
-    require(usersBalance[user].tokenBorrowed == tokenId || usersBalance[user].borrowedAmount == 0, "Address already has a loan in another token");
+    require(usersBalance[user].tokenBorrowed == tokenId || usersBalance[user].borrowedAmount == 0, "Already has loan");
     // make sure it borrowes less than the collateral _collateral_factor
     address collateralToken = usersBalance[user].tokenCollateralised;
     uint healthFactorAfter = getHealthFactorUnsafe(collateralToken, usersBalance[user].collateralAmount, tokenId, SafeMath.add(amount, usersBalance[user].borrowedAmount));
@@ -181,16 +173,16 @@ contract LiquidityPool {
     usersBalance[user].borrowedAmount = SafeMath.add(usersBalance[user].borrowedAmount, amount);
     usersBalance[user].cummulated_ir_borrow = SafeMath.add(amount, getCummulatedInterestLoan(user));
     takeFromReserves(tokenId, amount, user, true);
-    updateInterestRate(user,tokenId,tokensData[tokenId].utilisation);
+    updateInterestRate(tokenId,tokensData[tokenId].utilisation);
     usersBalance[user].init_interest_borrow = ivar.getIRBorrowTotalCummulation(tokenId);
     emit Loan(user, now);
   }
 
   function depositCollateral(address payable user, uint amount, address tokenId) public{
     //make sure users only have deposits in one token
-    require(usersBalance[user].tokenCollateralised == address(0) || usersBalance[user].tokenCollateralised == tokenId, "Address already has collateral in another token");
+    require(usersBalance[user].tokenCollateralised == address(0) || usersBalance[user].tokenCollateralised == tokenId, "Already has collateral");
     //make sure token is supported
-    require(keccak256(bytes(tokensData[tokenId].symbol)) != keccak256(bytes("")), "Token not supported");
+    require(tokensData[tokenId].price != 0, "Not supported");
 
     // make sure token is exchangeable
     checkExchangeability(tokenId);
@@ -198,6 +190,8 @@ contract LiquidityPool {
     if(tokensData[tokenId].exchangeable != true){
       return;
     }
+
+    require(trustedTkns[tokenId] || SafeMath.add(tokensData[tokenId].totalCollateral, amount) <= tokensData[tokenId].totalBorrowed, "Borrow > coll condition breached");
 
     addToReserves(tokenId, amount, user, true, false);
     usersBalance[user].tokenCollateralised = tokenId;
@@ -209,7 +203,7 @@ contract LiquidityPool {
   function switchDepositToCollateral(address payable user, uint amount) public{
     address tokenId = usersBalance[user].tokenDeposited;
     //make sure token is supported
-    require(keccak256(bytes(tokensData[tokenId].symbol)) != keccak256(bytes("")), "Token does not exist");
+    require(tokensData[tokenId].price != 0, "Not supported");
 
     // make sure token is exchangeable
     checkExchangeability(tokenId);
@@ -217,28 +211,27 @@ contract LiquidityPool {
     if(tokensData[tokenId].exchangeable != true){
       return;
     }
-
+    require(trustedTkns[tokenId] || SafeMath.add(tokensData[tokenId].totalCollateral, amount) <= tokensData[tokenId].totalBorrowed, "Borrow > coll condition breached");
     // make sure deposited is not zero
-    require(usersBalance[user].depositedAmount >= amount, "Deposit is not enough, cannot switch to collateral");
+    require(usersBalance[user].depositedAmount >= amount, "Deposit is not enough");
     // make sure collateral is not in another token
     require(usersBalance[user].tokenCollateralised == address(0) || (usersBalance[user].tokenCollateralised == tokenId && usersBalance[user].tokenDeposited == tokenId), "Collateral in another token / collateral token != deposit token");
     // make sure subtracting amount from deposits does not make the total deposited less than total borrow
     require(SafeMath.sub(tokensData[tokenId].totalDeposited,amount) > tokensData[tokenId].totalBorrowed, "Deposit-- => overborrowings");
 
     usersBalance[user].depositedAmount = SafeMath.sub(usersBalance[user].depositedAmount, amount);
-    uint cummulatedInterest = getCummulatedInterestDeposit(user);
-    usersBalance[user].cummulated_ir_deposit = SafeMath.sub(cummulatedInterest, amount);
+    usersBalance[user].cummulated_ir_deposit = SafeMath.sub(getCummulatedInterestDeposit(user), amount);
 
     usersBalance[user].tokenCollateralised = tokenId;
     tokensData[tokenId].totalCollateral = SafeMath.add(tokensData[tokenId].totalCollateral, amount); // increase reserves collateral
     tokensData[tokenId].totalDeposited = SafeMath.sub(tokensData[tokenId].totalDeposited, amount); // decrease reserves deposits
-    updateInterestRate(user,tokenId,tokensData[tokenId].utilisation);
+    updateInterestRate(tokenId,tokensData[tokenId].utilisation);
     usersBalance[user].collateralAmount = SafeMath.add(usersBalance[user].collateralAmount, amount);
   }
 
   function repay(address payable user, uint amount) public{
     // check if there is something to repay
-    require(usersBalance[user].borrowedAmount != 0, "There is no loan to repay for user");
+    require(usersBalance[user].borrowedAmount != 0, "No loan to repay");
 
     address token = usersBalance[user].tokenBorrowed;
 
@@ -249,9 +242,10 @@ contract LiquidityPool {
       return;
     }
 
+    require(trustedTkns[token] || SafeMath.sub(tokensData[token].totalBorrowed, amount) <= tokensData[token].totalCollateral, "Borrow > coll condition breached");
     // check if given amount does not exceed the owed amount
     uint cummulatedInterest = getCummulatedInterestLoan(user); // cummulated amount owed
-    require(cummulatedInterest >= amount, "Amount repaid is larger than owed");
+    require(cummulatedInterest >= amount, "Repaid > owed");
 
     // what is not subtracted from the totalBorrowed of reserves is extra
     uint borrowedAmount = usersBalance[user].borrowedAmount;
@@ -272,7 +266,7 @@ contract LiquidityPool {
     usersBalance[user].cummulated_ir_borrow = SafeMath.sub(cummulatedInterest ,amount);
     usersBalance[user].init_interest_borrow = ivar.getIRBorrowTotalCummulation(token);
     // modify utilisation rate and interest
-    updateInterestRate(user, token, tokensData[token].utilisation);
+    updateInterestRate(token, tokensData[token].utilisation);
   }
 
   function redeem(address payable user, uint amount) public{
@@ -285,7 +279,7 @@ contract LiquidityPool {
 
     // check if given amount does not exceed the deposit+interest
     uint cummulatedInterest = getCummulatedInterestDeposit(user); // cummulated amount owed
-    require(cummulatedInterest >= amount, "Amount redeemed is larger than assigned");
+    require(cummulatedInterest >= amount, "Redeemed > assigned");
 
     // split the amount requested
     uint depositedAmount = usersBalance[user].depositedAmount;
@@ -297,9 +291,9 @@ contract LiquidityPool {
     }
 
     // check if enough liquidity in reserves
-    require( SafeMath.sub(tokensData[token].totalDeposited, fromPool) >= tokensData[token].totalBorrowed, "Demand would exceed supply");
+    require( SafeMath.sub(tokensData[token].totalDeposited, fromPool) >= tokensData[token].totalBorrowed, "Demand > supply");
     // check for extra liquidity obtained from interest rate payments on loans
-    uint reservesBalance = getReserveBalance(token);
+    uint reservesBalance = ERC20(token).balanceOf(address(this));
     // if extra redeemed, check if enough in extra reserves
     require(extra == 0 || extra < SafeMath.sub(SafeMath.sub(reservesBalance, tokensData[token].totalDeposited),tokensData[token].totalCollateral), "Not enough extra reserves");
 
@@ -313,7 +307,7 @@ contract LiquidityPool {
     // transfer extra
     ERC20(token).transfer(user,extra);
     // modify utilisation rate and interest
-    updateInterestRate(user, token, tokensData[token].utilisation);
+    updateInterestRate(token, tokensData[token].utilisation);
   }
 
   function redeemCollateral(address payable user, uint amount) public{
@@ -330,8 +324,7 @@ contract LiquidityPool {
     // check if there is enough to redeem
     require(usersBalance[user].collateralAmount >= amount,"Given amount greater > collateral");
     // check if redeeming would not affect the health factor
-    uint cummulatedInterest = getCummulatedInterestLoan(user); // cummulated amount owed
-    uint healthFactorAfter = getHealthFactorUnsafe(collateralToken, SafeMath.sub(usersBalance[user].collateralAmount, amount), borrowedToken, cummulatedInterest);
+    uint healthFactorAfter = getHealthFactorUnsafe(collateralToken, SafeMath.sub(usersBalance[user].collateralAmount, amount), borrowedToken, getCummulatedInterestLoan(user));
     require( healthFactorAfter > 1000, "Health factor would be too low");
     // do changes in user's balances
     usersBalance[user].collateralAmount = SafeMath.sub(usersBalance[user].collateralAmount, amount);
@@ -388,9 +381,9 @@ contract LiquidityPool {
     address borrToken = usersBalance[user].tokenBorrowed;
     updateTokenPrice(collToken);
     updateTokenPrice(borrToken);
-    uint upperLimitLoanUSD100 = SafeMath.mul(SafeMath.mul(tokensData[collToken].collateral_factor, tokensData[collToken].price), usersBalance[user].collateralAmount);
     uint cummulatedLoan = getCummulatedInterestLoan(user);
-    require(upperLimitLoanUSD100 < SafeMath.mul(SafeMath.mul(cummulatedLoan, tokensData[borrToken].price),100), "Loan has a safe health factor");
+    uint healthFactor = getHealthFactorUnsafe(collToken, usersBalance[user].collateralAmount, borrToken, cummulatedLoan);
+    require(healthFactor < 1000, "Safe health factor");
 
     // get money from sender (loan)
     // sender has to give me the amounnt owed

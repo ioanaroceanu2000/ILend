@@ -41,7 +41,7 @@ contract('LiquidityPool', () => {
     add = contractToken[0];
     const abi = contractToken[1];
     tokenInstance = new web3.eth.Contract(abi,add);
-    await contractInstance.createToken('Weth',add,50, 70, 1, 7, 200, 2,490);
+    await contractInstance.createToken(add,50, 70, 1, 7, 200, 2,490, true);
     //var syl = await contractInstance.tokensData(add);
 
     // deploy new token DAI
@@ -49,7 +49,7 @@ contract('LiquidityPool', () => {
     addDai = contractToken2[0];
     const abiDai = contractToken2[1];
     tokenInstanceDai = new web3.eth.Contract(abiDai,addDai);
-    await contractInstance.createToken('Dai',addDai,50, 70, 1, 7, 200, 2,1);
+    await contractInstance.createToken(addDai,50, 70, 1, 7, 200, 2,1, true);
 
     // deploy new token WBTC
     var contractToken3 = await depolyToken('WBTC', 'WBTC');
@@ -62,7 +62,7 @@ contract('LiquidityPool', () => {
     addUNI = contractToken4[0];
     const abiUNI = contractToken4[1];
     tokenInstanceUNI = new web3.eth.Contract(abiUNI,addUNI);
-    await contractInstance.createToken('UNI',addUNI,50, 70, 1, 7, 200, 2,22);
+    await contractInstance.createToken(addUNI,50, 70, 1, 7, 200, 2,22, false);
 
     // put tokens on exchange
     await exchangeInstance.createPool(add, 490, 'Weth');
@@ -135,6 +135,8 @@ contract('LiquidityPool', () => {
     assert.equal(erroAnotherToken, true, "no already has a collateral error given");
   });
 
+  // a1 coll 2000 weth
+
   it('should accept deposit collateral in the same token', async () => {
 
     //deposit from an address to contract WETH
@@ -148,6 +150,8 @@ contract('LiquidityPool', () => {
     assert.equal(blc.tokenCollateralised, add, "collateral token incorrect");
     assert.equal(balance, 4000, "reserves balance incorrect in WETH");
   });
+
+  // a1 coll 4000 weth
 
   it('should give error when borrow when supply < demand', async () => {
 
@@ -237,6 +241,9 @@ contract('LiquidityPool', () => {
     assert.equal(balance.toString(), '1310000', "account1 balance incorrect");
     assert.equal(error, true, "no <more than collateral factor> error given");
   });
+
+  // a1 coll 400 Weth
+  // a1 borr 1300000 Dai
 
 });
 

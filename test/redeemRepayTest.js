@@ -27,6 +27,7 @@ contract('LiquidityPool', () => {
   const privateKeyAcc1 = 'db0da07daf7017dbd997ccb953c2b372b4f319c87bc11c4598b749fb33a5871d';
   const privateKeyAcc3 = 'b29053acd1c83362a25eb41fc70eaa4332b99a607048116444086a8dbcd8a9c2';
   const privateKeyAcc0 = 'b914330cc23191e0965fdbd02c08b3341ca07b8e231852240b46dc8da0d11ab4';
+  const privateKeyAcc2 = '8cb6bddedfca7ccf0e05540fb8a9c65d748f4d1e21310c1d02bca29437730413';
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT
@@ -41,7 +42,7 @@ contract('LiquidityPool', () => {
     add = contractToken[0];
     const abi = contractToken[1];
     tokenInstance = new web3.eth.Contract(abi,add);
-    await contractInstance.createToken('Weth',add,50, 70, 1, 7, 200, 2,490);
+    await contractInstance.createToken(add,50, 70, 1, 7, 200, 2,490, true);
     //var syl = await contractInstance.tokensData(add);
 
     // deploy new token DAI
@@ -49,21 +50,21 @@ contract('LiquidityPool', () => {
     addDai = contractToken2[0];
     const abiDai = contractToken2[1];
     tokenInstanceDai = new web3.eth.Contract(abiDai,addDai);
-    await contractInstance.createToken('Dai',addDai,50, 70, 1, 7, 200, 2,1);
+    await contractInstance.createToken(addDai,50, 70, 1, 7, 200, 2,1, true);
 
     // deploy new token WBTC
     var contractToken3 = await depolyToken('WBTC', 'WBTC');
     addWBTC = contractToken3[0];
     const abiWBTC = contractToken3[1];
     tokenInstanceWBTC = new web3.eth.Contract(abiWBTC,addWBTC);
-    await contractInstance.createToken('WBTC',addWBTC,50, 70, 1, 7, 200, 2,49000);
+    await contractInstance.createToken(addWBTC,50, 70, 1, 7, 200, 2,49000, false);
 
     // deploy new token UNI
     var contractToken4 = await depolyToken('UNI', 'UNI');
     addUNI = contractToken4[0];
     const abiUNI = contractToken4[1];
     tokenInstanceUNI = new web3.eth.Contract(abiUNI,addUNI);
-    await contractInstance.createToken('UNI',addUNI,50, 70, 1, 7, 200, 2,22);
+    await contractInstance.createToken(addUNI,50, 70, 1, 7, 200, 2,22, false);
 
     // put tokens on exchange
     await exchangeInstance.createPool(add, 490, 'Weth');
@@ -195,7 +196,6 @@ contract('LiquidityPool', () => {
     // check user balance and reserves
     var blc = await contractInstance.usersBalance(accounts[1]);
     var reserves = await contractInstance.tokensData(add);
-    var resblc = await contractInstance.getReserveBalance(add);
     assert.equal(blc.depositedAmount, 100, "Deposited amount not left to be 1000");
     assert.equal(reserves.totalDeposited, 100, "Reserves total deposits not letf to 1000");
     assert.equal(error, true, "no error given");
@@ -220,7 +220,6 @@ contract('LiquidityPool', () => {
     // check user balance and reserves
     var blc = await contractInstance.usersBalance(accounts[1]);
     var reserves = await contractInstance.tokensData(add);
-    var resblc = await contractInstance.getReserveBalance(add);
     assert.equal(blc.depositedAmount, 100, "Deposited amount not left to be 1000");
     assert.equal(reserves.totalDeposited, 100, "Reserves total deposits not letf to 1000");
     assert.equal(error, true, "no error given");
@@ -240,7 +239,6 @@ contract('LiquidityPool', () => {
     // check user balance and reserves
     var blc = await contractInstance.usersBalance(accounts[1]);
     var reserves = await contractInstance.tokensData(add);
-    var resblc = await contractInstance.getReserveBalance(add);
     assert.equal(blc.depositedAmount, 50, "Deposited amount not left to be 50");
     assert.equal(reserves.totalDeposited, 50, "Reserves total deposits not letf to 50");
   });
@@ -267,6 +265,17 @@ contract('LiquidityPool', () => {
   // redeeming collateral is okay if token borrowed is stilled exchangable
   // redeeming collateral is not okay if token borrowed is unexchangable
   it('redeeming collateral of unexchangable token should be allowed', async () => {
+    // a3 deposit WBTC
+    await giveTokenTo(accounts[2], accounts[0], tokenInstanceWBTC, 3000);
+    await givePermissionToContract(accounts[2], privateKeyAcc2, contractInstance.address, 3000, tokenInstanceWBTC,addWBTC);
+    await contractInstance.deposit(accounts[2], 3000, addWBTC);
+    // a2 borrow some WBTC
+    await giveTokenTo(accounts[2], accounts[0], tokenInstance, 600000);
+    await givePermissionToContract(accounts[2], privateKeyAcc2, contractInstance.address, 600000, tokenInstance,add);
+    await contractInstance.depositCollateral(accounts[2], 600000, add);
+    await contractInstance.borrow(accounts[2], 3000, addWBTC);
+
+
     // a0 coll in wbtc
     await givePermissionToContract(accounts[0], privateKeyAcc0, contractInstance.address, 3000, tokenInstanceWBTC,addWBTC);
     await contractInstance.depositCollateral(accounts[0], 3000, addWBTC);
@@ -290,6 +299,7 @@ contract('LiquidityPool', () => {
   // redeeming collateral is okay if token borrowed is stilled exchangable
   // redeeming collateral is not okay if token borrowed is unexchangable
   it('redeeming collateral backing unexchangable token should NOT be allowed', async () => {
+
     await exchangeInstance.switchToUnexchangable(addDai);
     // redeem wbtc when dai unexchangable
     await contractInstance.redeemCollateral(accounts[0], 1000);

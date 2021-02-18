@@ -21,7 +21,7 @@ contract Test1 {
     InterestVariables contr = new InterestVariables();
 
     address add = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    contr.createToken('WETH',add,50, 70, 1, 7, 200, 2);
+    contr.createToken(add,50, 70, 1, 7, 200, 2);
   }
 
 }

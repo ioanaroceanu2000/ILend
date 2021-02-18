@@ -14,7 +14,7 @@ contract('InterestVariables', () => {
     const contractInstance = await InterestVariables.deployed();
     const add = (await depolyToken('Weth', 'Weth'))[0];
     // (_symbol, _token_address, _optimal_utilisation, _collateral_factor, _base_rate, _slope1, _slope2, _spread)
-    await contractInstance.createToken('WETH',add,50, 70, 0, 7, 200, 20);
+    await contractInstance.createToken(add,50, 70, 0, 7, 200, 20);
     var opt = await contractInstance.tokens(add);
     console.log(opt.optimal_utilisation);
     const irB = await contractInstance.borrowInterestRate(add,80);
@@ -25,7 +25,7 @@ contract('InterestVariables', () => {
   it('calculate interest rates when utilisation is 0', async () => {
     const contractInstance = await InterestVariables.deployed();
     const add = (await depolyToken('Weth', 'Weth'))[0];
-    await contractInstance.createToken('WETH',add,50, 70, 0, 7, 200, 20);
+    await contractInstance.createToken(add,50, 70, 0, 7, 200, 20);
     const irD = await contractInstance.depositInterestRate(add,0);
     const irB = await contractInstance.borrowInterestRate(add,0);
     assert.equal(irD.valueOf().toNumber(), 0, "ir does not have the same value");
@@ -34,7 +34,7 @@ contract('InterestVariables', () => {
   it('calculate interest rates when underLimit Urilisation', async () => {
     const contractInstance = await InterestVariables.deployed();
     const add = (await depolyToken('Weth', 'Weth'))[0];
-    await contractInstance.createToken('WETH',add,50, 70, 0, 7, 200, 20);
+    await contractInstance.createToken(add,50, 70, 0, 7, 200, 20);
     const irD = await contractInstance.depositInterestRate(add,40);
     const irB = await contractInstance.borrowInterestRate(add,40);
     assert.equal(irD.valueOf().toNumber(), 560, "ir does not have the same value");
@@ -71,7 +71,7 @@ contract('LiquidityPool', () => {
     add = contractToken[0];
     const abi = contractToken[1];
     tokenInstance = new web3.eth.Contract(abi,add);
-    await contractInstance.createToken('Weth',add,50, 70, 1, 7, 200, 2,490);
+    await contractInstance.createToken(add,50, 70, 1, 7, 200, 2,490, true);
     //var syl = await contractInstance.tokensData(add);
 
     // deploy new token DAI
@@ -79,7 +79,7 @@ contract('LiquidityPool', () => {
     addDai = contractToken2[0];
     const abiDai = contractToken2[1];
     tokenInstanceDai = new web3.eth.Contract(abiDai,addDai);
-    await contractInstance.createToken('Dai',addDai,50, 70, 1, 7, 200, 2,1);
+    await contractInstance.createToken(addDai,50, 70, 1, 7, 200, 2,1, true);
 
     // put tokens on exchange
     await exchangeInstance.createPool(add, 490, 'Weth');
@@ -95,13 +95,15 @@ contract('LiquidityPool', () => {
 
     await givePermissionToContract(accounts[1], privateKeyAcc1, contractInstance.address, 500000, tokenInstance,add);
 
-    //deposit from an address to contract
-    await contractInstance.deposit(accounts[1], 4000, add);
+    //deposit from an address to contra
+
+    await contractInstance.deposit(accounts[1], 4000, add).then(receipt =>{console.log(receipt);});
 
     var blc = await contractInstance.usersBalance(accounts[1]);
     var balance;
     await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
-    var reserves = await contractInstance.getReserveBalance(add);
+    var reserves;
+    await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ reserves = res; });
 
     let cummIRdep = await ivarInstance.getIRDepositTotalCummulation(add);
     console.log(cummIRdep.valueOf().toNumber());
@@ -115,7 +117,7 @@ contract('LiquidityPool', () => {
 
   it('should switch from deposit to collateral', async () => {
     //deposit from an address to contract
-    await contractInstance.switchDepositToCollateral(accounts[1], 2000, add);
+    await contractInstance.switchDepositToCollateral(accounts[1], 2000);
 
     var blc = await contractInstance.usersBalance(accounts[1]);
     var balance;
@@ -203,7 +205,8 @@ contract('LiquidityPool', () => {
     // check user balance and reserves
     var blc = await contractInstance.usersBalance(accounts[1]);
     var reserves = await contractInstance.tokensData(add);
-    var resblc = await contractInstance.getReserveBalance(add);
+    var resblc;
+    await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ resblc = res; });
     console.log(blc.depositedAmount);
     console.log(reserves.totalDeposited);
     console.log(resblc);

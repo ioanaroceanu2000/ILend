@@ -41,7 +41,7 @@ contract('LiquidityPool', () => {
     add = contractToken[0];
     const abi = contractToken[1];
     tokenInstance = new web3.eth.Contract(abi,add);
-    await contractInstance.createToken('Weth',add,50, 70, 1, 7, 200, 2,490);
+    await contractInstance.createToken(add,50, 70, 1, 7, 200, 2,490, true);
     //var syl = await contractInstance.tokensData(add);
 
     // deploy new token DAI
@@ -49,7 +49,7 @@ contract('LiquidityPool', () => {
     addDai = contractToken2[0];
     const abiDai = contractToken2[1];
     tokenInstanceDai = new web3.eth.Contract(abiDai,addDai);
-    await contractInstance.createToken('Dai',addDai,50, 70, 1, 7, 200, 2,1);
+    await contractInstance.createToken(addDai,50, 70, 1, 7, 200, 2,1, true);
 
     // deploy new token WBTC
     var contractToken3 = await depolyToken('WBTC', 'WBTC');
@@ -62,7 +62,7 @@ contract('LiquidityPool', () => {
     addUNI = contractToken4[0];
     const abiUNI = contractToken4[1];
     tokenInstanceUNI = new web3.eth.Contract(abiUNI,addUNI);
-    await contractInstance.createToken('UNI',addUNI,50, 70, 1, 7, 200, 2,22);
+    await contractInstance.createToken(addUNI,50, 70, 1, 7, 200, 2,22, false);
 
     // put tokens on exchange
     await exchangeInstance.createPool(add, 490, 'Weth');
@@ -128,7 +128,7 @@ contract('LiquidityPool', () => {
     var blc = await contractInstance.usersBalance(accounts[1]);
     var balance;
     await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
-    var reserves = await contractInstance.getReserveBalance(add);
+
 
     let cummIRdep = await ivarInstance.getIRDepositTotalCummulation(add);
     console.log(cummIRdep.valueOf().toNumber());
@@ -138,6 +138,8 @@ contract('LiquidityPool', () => {
     assert.equal(blc.depositedAmount, 4000, "balance incorrect");
     assert.equal(balance, 4000, "reserves balance incorrect");
   });
+
+  //a1 deposit 4000 weth
 
   // deposit another token than current deposit
   it('should not be allowed to deposit DAI too', async () => {
@@ -190,6 +192,8 @@ contract('LiquidityPool', () => {
     assert.equal(balance, 8000, "reserves balance incorrect");
   });
 
+  //a1 deposit 8000 weth
+
 // SWTICH FROM DEPOSIT TO COLLATERAL
 
   it('should switch from deposit to collateral', async () => {
@@ -205,6 +209,9 @@ contract('LiquidityPool', () => {
     assert.equal(balance, 8000, "reserves balance incorrect");
   });
 
+  //a1 deposit 6000 weth
+  //a1 coll 2000 weth
+
   it('should switch from deposit to collateral AGAIN same token', async () => {
     //deposit from an address to contract
     await contractInstance.switchDepositToCollateral(accounts[1], 2000);
@@ -217,6 +224,9 @@ contract('LiquidityPool', () => {
     assert.equal(blc.depositedAmount, 4000, "not subtracted from deposit");
     assert.equal(balance, 8000, "reserves balance incorrect");
   });
+
+  //a1 deposit 4000 weth
+  //a1 coll 4000 weth
 
   it('should switch from deposit to collateral more than allowed', async () => {
 
@@ -258,7 +268,7 @@ contract('LiquidityPool', () => {
     addTTI = contractToken[0];
     const abiTTI = contractToken[1];
     tokenInstanceTTI = new web3.eth.Contract(abiTTI,addTTI);
-    await contractInstance.createToken('TTI',addTTI,50, 70, 1, 7, 200, 2,22);
+    await contractInstance.createToken(addTTI,50, 70, 1, 7, 200, 2,22, false);
 
     // put tokens on exchange
     await exchangeInstance.createPool(addTTI, 34, 'TTI');
@@ -293,9 +303,12 @@ contract('LiquidityPool', () => {
     await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
 
     // 20000 + 2000(swapped last time)
-    assert.equal(blc.collateralAmount, 22000, "collateral amount incorrect");
-    assert.equal(balance, 24000, "reserves balance incorrect");
+    assert.equal(blc.collateralAmount.toNumber(), 24000, "collateral amount incorrect");
+    assert.equal(balance, 28000, "reserves balance incorrect");
   });
+
+  //a1 deposit 4000 weth
+  //a1 coll 24000 weth
 
   it('should borrow 1000', async () => {
     // get some tokens

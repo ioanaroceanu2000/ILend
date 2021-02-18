@@ -20,7 +20,6 @@ contract InterestVariables {
 
   // tokens structure
   struct TknVariables {
-    string symbol;
     address token_address;
     uint optimal_utilisation;
     uint collateral_factor;
@@ -48,7 +47,7 @@ contract InterestVariables {
     liquidityPoolAddress = add;
   }
 
-  function createToken(string memory _symbol,
+  function createToken(
     address _token_address,
     uint _optimal_utilisation,
     uint _collateral_factor,
@@ -57,7 +56,7 @@ contract InterestVariables {
     uint _slope2,
     uint _spread)
     public{
-    tokens[_token_address] = TknVariables(_symbol, _token_address,_optimal_utilisation, _collateral_factor, _base_rate, _slope1, _slope2, _spread);
+    tokens[_token_address] = TknVariables( _token_address,_optimal_utilisation, _collateral_factor, _base_rate, _slope1, _slope2, _spread);
     // initialise tokne glogal variable of CUMMULATED IR
     tokenIRcummulation[_token_address].cummulated_depositIR = 1e12;
     tokenIRcummulation[_token_address].cummulated_borrowIR = 1e12;
