@@ -16,6 +16,7 @@ contract LiquidityPool {
   constructor(address ivar_add, address exchange_add) public {
     ivar = InterestVariables(ivar_add);
     exchange = Exchange(exchange_add);
+    owner = msg.sender;
   }
 
   address private owner;
@@ -120,12 +121,12 @@ contract LiquidityPool {
 
   // take out from liquidity pool of token
   function takeFromReserves(address tokenId, uint amount, address payable user, bool isLoan) internal{
-    ERC20(tokenId).transfer(user,  amount);
     if(isLoan){
       tokensData[tokenId].totalBorrowed = SafeMath.add(tokensData[tokenId].totalBorrowed, amount);
     }else{ //redeeming
       tokensData[tokenId].totalDeposited = SafeMath.sub(tokensData[tokenId].totalDeposited, amount);
     }
+    ERC20(tokenId).transfer(user,  amount);
   }
 
   function deposit(address payable user, uint amount, address tokenId) public{
@@ -379,6 +380,11 @@ contract LiquidityPool {
     // check if the account has health Factor > 1
     address collToken = usersBalance[user].tokenCollateralised;
     address borrToken = usersBalance[user].tokenBorrowed;
+    checkExchangeability(borrToken);
+    tryDiscardLoan(user);
+    if(tokensData[borrToken].exchangeable != true){
+      return;
+    }
     updateTokenPrice(collToken);
     updateTokenPrice(borrToken);
     uint cummulatedLoan = getCummulatedInterestLoan(user);
@@ -392,7 +398,6 @@ contract LiquidityPool {
     // send to sender (collateral)
     // sender has to receive the token collateralised correspondend with amount owed*1.05
     uint toLiquidator = SafeMath.div(SafeMath.mul(SafeMath.mul(cummulatedLoan, tokensData[borrToken].price),105), SafeMath.mul(tokensData[collToken].price, 100));
-    ERC20(collToken).transfer(msg.sender, toLiquidator);
 
     // modify details
     usersBalance[user].borrowedAmount = 0;
@@ -400,6 +405,8 @@ contract LiquidityPool {
     usersBalance[user].collateralAmount = SafeMath.sub(usersBalance[user].collateralAmount, toLiquidator);
     tokensData[borrToken].totalBorrowed = SafeMath.sub(tokensData[borrToken].totalBorrowed, cummulatedLoan);
     tokensData[collToken].totalCollateral = SafeMath.sub(tokensData[collToken].totalCollateral, toLiquidator);
+
+    ERC20(collToken).transfer(msg.sender, toLiquidator);
   }
 
 

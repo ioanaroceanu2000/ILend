@@ -8130,23 +8130,9 @@
     "name": "solc",
     "version": "0.6.2+commit.bacdbe57.Emscripten.clang"
   },
-  "networks": {
-    "3": {
-      "events": {},
-      "links": {},
-      "address": "0xAB1A1b7139288e621B0F9Da068343199f946Fc14",
-      "transactionHash": "0x6b6ed03d0edec50111f3466db4192e0f11020e20b8cc8a93719d49dc7c18b435"
-    },
-    "5777": {
-      "events": {},
-      "links": {},
-      "address": "0x26f71a8dff1ABdC53252DEC9c9420c4f0994bdE9",
-      "transactionHash": "0x483cfcd5aba83b466db0a0d895b1c20c11eff3571a80cd24d43a78d4d875823a"
-    }
-  },
+  "networks": {},
   "schemaVersion": "3.3.2",
-  "updatedAt": "2021-02-13T15:36:38.018Z",
-  "networkType": "ethereum",
+  "updatedAt": "2021-02-23T12:10:16.976Z",
   "devdoc": {
     "details": "Collection of functions related to the address type",
     "methods": {}

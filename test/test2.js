@@ -16,7 +16,7 @@ contract('Exchange', () => {
   let instanceEth = null;
   let instanceDai = null;
   let addDai = null;
-  const privateKeyAcc0 = 'b914330cc23191e0965fdbd02c08b3341ca07b8e231852240b46dc8da0d11ab4';
+  const privateKeyAcc0 = 'bced97b1c8823024428039950a9ce9c5782b465561d9e6c0514bad1508c82267';
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT

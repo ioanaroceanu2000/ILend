@@ -33,8 +33,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "constant": true
+      "type": "function"
     },
     {
       "inputs": [
@@ -89,8 +88,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "constant": true
+      "type": "function"
     },
     {
       "inputs": [
@@ -145,8 +143,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "constant": true
+      "type": "function"
     },
     {
       "inputs": [
@@ -165,8 +162,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "constant": true
+      "type": "function"
     },
     {
       "inputs": [
@@ -4852,10 +4848,10 @@
                             "name": "SafeMath",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 3983,
+                            "referencedDeclaration": 3981,
                             "src": "2571:8:3",
                             "typeDescriptions": {
-                              "typeIdentifier": "t_type$_t_contract$_SafeMath_$3983_$",
+                              "typeIdentifier": "t_type$_t_contract$_SafeMath_$3981_$",
                               "typeString": "type(library SafeMath)"
                             }
                           },
@@ -4866,7 +4862,7 @@
                           "lValueRequested": false,
                           "memberName": "mul",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 3900,
+                          "referencedDeclaration": 3898,
                           "src": "2571:12:3",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$",
@@ -4962,10 +4958,10 @@
                         "name": "SafeMath",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 3983,
+                        "referencedDeclaration": 3981,
                         "src": "2558:8:3",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_type$_t_contract$_SafeMath_$3983_$",
+                          "typeIdentifier": "t_type$_t_contract$_SafeMath_$3981_$",
                           "typeString": "type(library SafeMath)"
                         }
                       },
@@ -4976,7 +4972,7 @@
                       "lValueRequested": false,
                       "memberName": "div",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 3916,
+                      "referencedDeclaration": 3914,
                       "src": "2558:12:3",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$",
@@ -10831,10 +10827,10 @@
                             "name": "SafeMath",
                             "nodeType": "Identifier",
                             "overloadedDeclarations": [],
-                            "referencedDeclaration": 3983,
+                            "referencedDeclaration": 3981,
                             "src": "2571:8:3",
                             "typeDescriptions": {
-                              "typeIdentifier": "t_type$_t_contract$_SafeMath_$3983_$",
+                              "typeIdentifier": "t_type$_t_contract$_SafeMath_$3981_$",
                               "typeString": "type(library SafeMath)"
                             }
                           },
@@ -10845,7 +10841,7 @@
                           "lValueRequested": false,
                           "memberName": "mul",
                           "nodeType": "MemberAccess",
-                          "referencedDeclaration": 3900,
+                          "referencedDeclaration": 3898,
                           "src": "2571:12:3",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$",
@@ -10941,10 +10937,10 @@
                         "name": "SafeMath",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 3983,
+                        "referencedDeclaration": 3981,
                         "src": "2558:8:3",
                         "typeDescriptions": {
-                          "typeIdentifier": "t_type$_t_contract$_SafeMath_$3983_$",
+                          "typeIdentifier": "t_type$_t_contract$_SafeMath_$3981_$",
                           "typeString": "type(library SafeMath)"
                         }
                       },
@@ -10955,7 +10951,7 @@
                       "lValueRequested": false,
                       "memberName": "div",
                       "nodeType": "MemberAccess",
-                      "referencedDeclaration": 3916,
+                      "referencedDeclaration": 3914,
                       "src": "2558:12:3",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$",
@@ -12166,23 +12162,9 @@
     "name": "solc",
     "version": "0.6.2+commit.bacdbe57.Emscripten.clang"
   },
-  "networks": {
-    "3": {
-      "events": {},
-      "links": {},
-      "address": "0x7E6C6fA7620072806f1e20651AC080C7F765Ee49",
-      "transactionHash": "0x8c9d668ad672a909e4d7d8b12b776794c8780053e7020289d5514fef611fe529"
-    },
-    "5777": {
-      "events": {},
-      "links": {},
-      "address": "0xF816Df0b5206181f096D97eB0206496AfFbE3FF0",
-      "transactionHash": "0xc02cbecb7059c0627acd5af82c226f35b29294830a5852971d71eeba3a245ce7"
-    }
-  },
+  "networks": {},
   "schemaVersion": "3.3.2",
-  "updatedAt": "2021-02-13T15:36:38.070Z",
-  "networkType": "ethereum",
+  "updatedAt": "2021-02-23T12:10:16.984Z",
   "devdoc": {
     "methods": {}
   },

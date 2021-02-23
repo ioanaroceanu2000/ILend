@@ -24,10 +24,10 @@ contract('LiquidityPool', () => {
   let addUNI = null;
   let ivarInstance = null;
   const ivar_address = web3.utils.toChecksumAddress('0x3Ce98c9524C753C4894bDa3c34a638D79bC00F45');
-  const privateKeyAcc1 = 'db0da07daf7017dbd997ccb953c2b372b4f319c87bc11c4598b749fb33a5871d';
-  const privateKeyAcc3 = 'b29053acd1c83362a25eb41fc70eaa4332b99a607048116444086a8dbcd8a9c2';
-  const privateKeyAcc0 = 'b914330cc23191e0965fdbd02c08b3341ca07b8e231852240b46dc8da0d11ab4';
-  const privateKeyAcc2 = '8cb6bddedfca7ccf0e05540fb8a9c65d748f4d1e21310c1d02bca29437730413';
+  const privateKeyAcc1 = '1a68de475a5d6443845a73e73335bbcb728e337fe099682e2179ff1235343a24';
+  const privateKeyAcc3 = 'd8bdeec8438a850fc00bccd18c1f0bf311650e6355908fd897dff953ffbef5e4';
+  const privateKeyAcc0 = 'bced97b1c8823024428039950a9ce9c5782b465561d9e6c0514bad1508c82267';
+  const privateKeyAcc2 = '963fa1bccc045d6afc8f73e1ce93525cddeb841e94b78030feef9cc28ddf4be2';
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT
