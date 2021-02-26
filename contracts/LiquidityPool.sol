@@ -155,14 +155,14 @@ contract LiquidityPool {
     require(tokensData[tokenId].price != 0, "Not supported");
 
     // make sure token is exchangeable
-    checkExchangeability(tokenId);
+    checkExchangeability(tokenId); // call at exchange 5
     tryDiscardLoan(user);
     if(tokensData[tokenId].exchangeable != true){
       return;
     }
 
     // make sure total borrow plus the amount to be borrowed is less than totalDeposited
-    require(tokensData[tokenId].totalDeposited >= SafeMath.add(tokensData[tokenId].totalBorrowed, amount), "Borrow => overborrowings");
+    require(tokensData[tokenId].totalDeposited >= SafeMath.add(tokensData[tokenId].totalBorrowed, amount), "Overborrowings");
     //make sure users only have borrowings in one token
     require(usersBalance[user].tokenBorrowed == tokenId || usersBalance[user].borrowedAmount == 0, "Already has loan");
     // make sure it borrowes less than the collateral _collateral_factor
@@ -173,9 +173,9 @@ contract LiquidityPool {
     usersBalance[user].tokenBorrowed = tokenId;
     usersBalance[user].borrowedAmount = SafeMath.add(usersBalance[user].borrowedAmount, amount);
     usersBalance[user].cummulated_ir_borrow = SafeMath.add(amount, getCummulatedInterestLoan(user));
-    takeFromReserves(tokenId, amount, user, true);
-    updateInterestRate(tokenId,tokensData[tokenId].utilisation);
-    usersBalance[user].init_interest_borrow = ivar.getIRBorrowTotalCummulation(tokenId);
+    takeFromReserves(tokenId, amount, user, true); // call at ETh a9
+    updateInterestRate(tokenId,tokensData[tokenId].utilisation); // call at IR cb
+    usersBalance[user].init_interest_borrow = ivar.getIRBorrowTotalCummulation(tokenId); 
     emit Loan(user, now);
   }
 
@@ -192,7 +192,7 @@ contract LiquidityPool {
       return;
     }
 
-    require(trustedTkns[tokenId] || SafeMath.add(tokensData[tokenId].totalCollateral, amount) <= tokensData[tokenId].totalBorrowed, "Borrow > coll condition breached");
+    require(trustedTkns[tokenId] || SafeMath.add(tokensData[tokenId].totalCollateral, amount) <= tokensData[tokenId].totalBorrowed, "Token borrowed less than collateralized");
 
     addToReserves(tokenId, amount, user, true, false);
     usersBalance[user].tokenCollateralised = tokenId;
@@ -212,13 +212,13 @@ contract LiquidityPool {
     if(tokensData[tokenId].exchangeable != true){
       return;
     }
-    require(trustedTkns[tokenId] || SafeMath.add(tokensData[tokenId].totalCollateral, amount) <= tokensData[tokenId].totalBorrowed, "Borrow > coll condition breached");
+    require(trustedTkns[tokenId] || SafeMath.add(tokensData[tokenId].totalCollateral, amount) <= tokensData[tokenId].totalBorrowed, "Token borrowed less than collateralized");
     // make sure deposited is not zero
     require(usersBalance[user].depositedAmount >= amount, "Deposit is not enough");
     // make sure collateral is not in another token
-    require(usersBalance[user].tokenCollateralised == address(0) || (usersBalance[user].tokenCollateralised == tokenId && usersBalance[user].tokenDeposited == tokenId), "Collateral in another token / collateral token != deposit token");
+    require(usersBalance[user].tokenCollateralised == address(0) || (usersBalance[user].tokenCollateralised == tokenId && usersBalance[user].tokenDeposited == tokenId), "Collateral token is not deposit token");
     // make sure subtracting amount from deposits does not make the total deposited less than total borrow
-    require(SafeMath.sub(tokensData[tokenId].totalDeposited,amount) > tokensData[tokenId].totalBorrowed, "Deposit-- => overborrowings");
+    require(SafeMath.sub(tokensData[tokenId].totalDeposited,amount) > tokensData[tokenId].totalBorrowed, "Implies overborrowings");
 
     usersBalance[user].depositedAmount = SafeMath.sub(usersBalance[user].depositedAmount, amount);
     usersBalance[user].cummulated_ir_deposit = SafeMath.sub(getCummulatedInterestDeposit(user), amount);
@@ -243,10 +243,10 @@ contract LiquidityPool {
       return;
     }
 
-    require(trustedTkns[token] || SafeMath.sub(tokensData[token].totalBorrowed, amount) <= tokensData[token].totalCollateral, "Borrow > coll condition breached");
+    require(trustedTkns[token] || SafeMath.sub(tokensData[token].totalBorrowed, amount) >= tokensData[token].totalCollateral, "Token borrowed less than collateralized");
     // check if given amount does not exceed the owed amount
     uint cummulatedInterest = getCummulatedInterestLoan(user); // cummulated amount owed
-    require(cummulatedInterest >= amount, "Repaid > owed");
+    require(cummulatedInterest >= amount, "Repaid too much");
 
     // what is not subtracted from the totalBorrowed of reserves is extra
     uint borrowedAmount = usersBalance[user].borrowedAmount;
@@ -280,7 +280,7 @@ contract LiquidityPool {
 
     // check if given amount does not exceed the deposit+interest
     uint cummulatedInterest = getCummulatedInterestDeposit(user); // cummulated amount owed
-    require(cummulatedInterest >= amount, "Redeemed > assigned");
+    require(cummulatedInterest >= amount, "Redeemed too much");
 
     // split the amount requested
     uint depositedAmount = usersBalance[user].depositedAmount;
@@ -292,7 +292,7 @@ contract LiquidityPool {
     }
 
     // check if enough liquidity in reserves
-    require( SafeMath.sub(tokensData[token].totalDeposited, fromPool) >= tokensData[token].totalBorrowed, "Demand > supply");
+    require( SafeMath.sub(tokensData[token].totalDeposited, fromPool) >= tokensData[token].totalBorrowed, "Implies overborrowing");
     // check for extra liquidity obtained from interest rate payments on loans
     uint reservesBalance = ERC20(token).balanceOf(address(this));
     // if extra redeemed, check if enough in extra reserves
@@ -323,7 +323,7 @@ contract LiquidityPool {
     }
 
     // check if there is enough to redeem
-    require(usersBalance[user].collateralAmount >= amount,"Given amount greater > collateral");
+    require(usersBalance[user].collateralAmount >= amount,"Redeemed too much");
     // check if redeeming would not affect the health factor
     uint healthFactorAfter = getHealthFactorUnsafe(collateralToken, SafeMath.sub(usersBalance[user].collateralAmount, amount), borrowedToken, getCummulatedInterestLoan(user));
     require( healthFactorAfter > 1000, "Health factor would be too low");

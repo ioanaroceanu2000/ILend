@@ -134,16 +134,10 @@ contract InterestVariables {
     return true;
   }
 
-  // ( (ir+secundeAn)*Precision/secundeAn)^perioada => interest to cummulate over that time period multiplied by PRECISION 10^12
   function powerPrecision(uint256 ir, uint256 power) internal view returns (uint256){
     uint256 PRECISION = 1e12;
-    uint256 secYear = 31556952;
-    uint secYear4 = SafeMath.mul(secYear, 10000); // - because IR is actualir*10^4
-    uint256 result = SafeMath.div(SafeMath.mul(SafeMath.add(ir,secYear4), PRECISION), secYear4);
-    for(uint i = 0; i< SafeMath.sub(power,1); i++){
-      result = SafeMath.div(SafeMath.mul(result,SafeMath.add(ir,secYear4)), secYear4);
-    }
-    return result;
+    uint256 secYear = SafeMath.mul(31556952, 10000);
+    return SafeMath.add(SafeMath.div(SafeMath.mul(SafeMath.mul(power,ir),PRECISION),secYear),PRECISION);
   }
 
 

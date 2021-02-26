@@ -24,9 +24,9 @@ contract('LiquidityPool', () => {
   let addUNI = null;
   let ivarInstance = null;
   const ivar_address = web3.utils.toChecksumAddress('0x3Ce98c9524C753C4894bDa3c34a638D79bC00F45');
-  const privateKeyAcc1 = '1a68de475a5d6443845a73e73335bbcb728e337fe099682e2179ff1235343a24';
-  const privateKeyAcc3 = 'd8bdeec8438a850fc00bccd18c1f0bf311650e6355908fd897dff953ffbef5e4';
-  const privateKeyAcc0 = 'bced97b1c8823024428039950a9ce9c5782b465561d9e6c0514bad1508c82267';
+  const privateKeyAcc1 = 'f150f305a793c102042767509d780283f090ff9650652623d6ee1509507e7054';
+  const privateKeyAcc3 = '300c0088a1d929a81cfc3c270f8c88c9d34941f399ff82d726e5c99ddf00ca3b';
+  const privateKeyAcc0 = 'c7ae604086af1add1829a6e38f3c7bc70c03934f02a4c198acc5ec02debf24d5';
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT
@@ -222,7 +222,9 @@ contract('LiquidityPool', () => {
   it('should accept borrowing in the same token but not over the collateral factor', async () => {
 
     await contractInstance.borrow(accounts[1], 1000000, addDai); // borrow 1 000 000 DAI
-    await contractInstance.borrow(accounts[1], 300000, addDai); // borrow again 300 000 DAI
+    await contractInstance.borrow(accounts[1], 300000, addDai).on('transactionHash', function(hash){
+      console.log("this is tx hash: ", hash);
+    }); // borrow again 300 000 DAI
 
     var error = false;
     try{

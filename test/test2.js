@@ -16,7 +16,7 @@ contract('Exchange', () => {
   let instanceEth = null;
   let instanceDai = null;
   let addDai = null;
-  const privateKeyAcc0 = 'bced97b1c8823024428039950a9ce9c5782b465561d9e6c0514bad1508c82267';
+  const privateKeyAcc0 = 'c7ae604086af1add1829a6e38f3c7bc70c03934f02a4c198acc5ec02debf24d5';
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT
@@ -65,8 +65,8 @@ contract('Exchange', () => {
     await instanceEth.methods.balanceOf(accounts[0]).call().then(res =>{ balanceEth2 = res; });
     var balanceDai2;
     await instanceDai.methods.balanceOf(accounts[0]).call().then(res =>{ balanceDai2 = res; });
-    assert.equal(balanceEth2,'99999999999999997970' , "Eth not out of wallet");
-    assert.equal(balanceDai2,  '99999999999999727000', "Dai not out of wallet");
+    assert.equal(balanceEth2,'999999999999999999997970' , "Eth not out of wallet");
+    assert.equal(balanceDai2,  '999999999999999999727000', "Dai not out of wallet");
   });
   it('should change prices through array', async () => {
     const ethData = await exchange.tokensData(addEth);
