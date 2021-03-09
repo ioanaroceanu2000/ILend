@@ -68,19 +68,6 @@ contract Exchange{
     return balance;
   }
 
-  function exchange(address token1, address token2, uint amountReceive, address payable user) public{
-    require(tokensData[token1].exchangeable == true && tokensData[token2].exchangeable == true, "Token not exchangeable anymore");
-    // check if the exchange has enough tokens to send
-    uint amountSend = SafeMath.div(SafeMath.mul(amountReceive,tokensData[token1].price),tokensData[token2].price);
-    require(getBalance(token2) >= amountSend, "Not enough to excgange");
-    // check if a pool for token1 exists
-    require(keccak256(bytes(tokensData[token1].symbol)) != keccak256(bytes("")), "Pool for token given does not exist");
-    // receive token1
-    ERC20(token1).transferFrom(user, address(this), amountReceive);
-    // send token 2
-    ERC20(token2).transfer(user,amountSend);
-  }
-
   function isContract(address _addr) internal view returns (bool){
     uint32 size;
     assembly {

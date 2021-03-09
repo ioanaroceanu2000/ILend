@@ -8,6 +8,7 @@ const Address = artifacts.require("Address");
 const LiquidityPool = artifacts.require("LiquidityPool");
 const InterestVariables = artifacts.require("InterestVariables");
 const Exchange = artifacts.require("Exchange");
+const LiquidationManager = artifacts.require("LiquidationManager");
 
 
 module.exports = function (deployer) {
@@ -23,7 +24,11 @@ module.exports = function (deployer) {
     await deployer.deploy(Address);
     await deployer.link(Address,LiquidityPool);
     await deployer.deploy(Exchange);
-    await deployer.deploy(LiquidityPool, InterestVariables.address, Exchange.address);
+    await deployer.deploy(LiquidationManager);
+    var lm = await LiquidationManager.deployed();
+    console.log(LiquidationManager.address);
+    await deployer.deploy(LiquidityPool, InterestVariables.address, Exchange.address, LiquidationManager.address);
+    await lm.setLPandEx(LiquidityPool.address, Exchange.address);
     var ivar = await InterestVariables.deployed();
     await ivar.setLiquidityPoolAddress(LiquidityPool.address);
   });

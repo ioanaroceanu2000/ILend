@@ -5,6 +5,7 @@ const BigNumber = require('bignumber.js');
 const Tx = require('ethereumjs-tx').Transaction;
 const InterestVariables = artifacts.require("InterestVariables");
 const LiquidityPool = artifacts.require("LiquidityPool");
+const LiquidationManager = artifacts.require("LiquidationManager");
 const Exchange = artifacts.require("Exchange");
 const Token = artifacts.require("Token");
 const web3  = new Web3("http://localhost:7545");
@@ -23,16 +24,18 @@ contract('LiquidityPool', () => {
   let tokenInstanceUNI = null;
   let addUNI = null;
   let ivarInstance = null;
+  let liquidationManager = null;
   const ivar_address = web3.utils.toChecksumAddress('0x3Ce98c9524C753C4894bDa3c34a638D79bC00F45');
-  const privateKeyAcc1 = 'f150f305a793c102042767509d780283f090ff9650652623d6ee1509507e7054';
-  const privateKeyAcc3 = '300c0088a1d929a81cfc3c270f8c88c9d34941f399ff82d726e5c99ddf00ca3b';
-  const privateKeyAcc0 = 'c7ae604086af1add1829a6e38f3c7bc70c03934f02a4c198acc5ec02debf24d5';
+  const privateKeyAcc1 = 'acce882c6ae5beba331d7971e1536ec507a2a9afaa32b0ee01bf8e3d635c1211';
+  const privateKeyAcc3 = 'c7b6ed1f57314f75711194ecc806ef7afc62ec87571fc8a2bca1c29ce661d0d0';
+  const privateKeyAcc0 = '9fe1a6a9056e2eb8e2b14147fff412ec877f4e4f623d8734e6e2217884a63762';
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT
     exchangeInstance = await Exchange.deployed();
-    contractInstance = await LiquidityPool.deployed(ivar_address, exchangeInstance.address);
+    liquidationManager = await LiquidationManager.deployed();
     ivarInstance = await InterestVariables.deployed();
+    contractInstance = await LiquidityPool.deployed(ivarInstance.address, exchangeInstance.address, liquidationManager.address);
     accounts = await web3.eth.getAccounts();
     console.log(contractInstance.address);
     console.log(exchangeInstance.address);
@@ -41,15 +44,15 @@ contract('LiquidityPool', () => {
     add = contractToken[0];
     const abi = contractToken[1];
     tokenInstance = new web3.eth.Contract(abi,add);
-    await contractInstance.createToken(add,50, 70, 1, 7, 200, 2,490, true);
-    //var syl = await contractInstance.tokensData(add);
+    await contractInstance.createtkn(add,50, 70, 1, 7, 200, 2,490, true);
+    //var syl = await contractInstance.tknsData(add);
 
     // deploy new token DAI
     var contractToken2 = await depolyToken('Dai', 'Dai');
     addDai = contractToken2[0];
     const abiDai = contractToken2[1];
     tokenInstanceDai = new web3.eth.Contract(abiDai,addDai);
-    await contractInstance.createToken(addDai,50, 70, 1, 7, 200, 2,1, true);
+    await contractInstance.createtkn(addDai,50, 70, 1, 7, 200, 2,1, true);
 
     // deploy new token WBTC
     var contractToken3 = await depolyToken('WBTC', 'WBTC');
@@ -62,7 +65,7 @@ contract('LiquidityPool', () => {
     addUNI = contractToken4[0];
     const abiUNI = contractToken4[1];
     tokenInstanceUNI = new web3.eth.Contract(abiUNI,addUNI);
-    await contractInstance.createToken(addUNI,50, 70, 1, 7, 200, 2,22, false);
+    await contractInstance.createtkn(addUNI,50, 70, 1, 7, 200, 2,22, false);
 
     // put tokens on exchange
     await exchangeInstance.createPool(add, 490, 'Weth');
@@ -96,7 +99,7 @@ contract('LiquidityPool', () => {
       errUnsup = true;
     }
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
     var balance;
     await tokenInstanceUNI.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
 
@@ -125,12 +128,12 @@ contract('LiquidityPool', () => {
       erroAnotherToken = true;
     }
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
     var balance;
     await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
 
     assert.equal(blc.collateralAmount, 2000, "collateral amount incorrect");
-    assert.equal(blc.tokenCollateralised, add, "collateral token incorrect");
+    assert.equal(blc.tknCollateralised, add, "collateral token incorrect");
     assert.equal(balance, 2000, "reserves balance incorrect in WETH");
     assert.equal(erroAnotherToken, true, "no already has a collateral error given");
   });
@@ -142,12 +145,12 @@ contract('LiquidityPool', () => {
     //deposit from an address to contract WETH
     await contractInstance.depositCollateral(accounts[1], 2000, add);
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
     var balance;
     await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
 
     assert.equal(blc.collateralAmount, 4000, "collateral amount incorrect");
-    assert.equal(blc.tokenCollateralised, add, "collateral token incorrect");
+    assert.equal(blc.tknCollateralised, add, "collateral token incorrect");
     assert.equal(balance, 4000, "reserves balance incorrect in WETH");
   });
 
@@ -163,7 +166,7 @@ contract('LiquidityPool', () => {
       error = true;
     }
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
 
     var balance; // account1 has 1000 Dai from before
     await tokenInstanceDai.methods.balanceOf(accounts[1]).call().then(res =>{ balance = res; });
@@ -185,7 +188,7 @@ contract('LiquidityPool', () => {
       errUnsup = true;
     }
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
     var balance;
     await tokenInstanceUNI.methods.balanceOf(accounts[1]).call().then(res =>{ balance = res; });
 
@@ -209,7 +212,7 @@ contract('LiquidityPool', () => {
       error = true;
     }
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
 
     var balance; // account1 has 1000 Dai from before
     await tokenInstanceDai.methods.balanceOf(accounts[1]).call().then(res =>{ balance = res; });
@@ -234,7 +237,7 @@ contract('LiquidityPool', () => {
       error = true;
     }
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
 
     var balance; // account1 has 1000 Dai from before
     await tokenInstanceDai.methods.balanceOf(accounts[1]).call().then(res =>{ balance = res; });

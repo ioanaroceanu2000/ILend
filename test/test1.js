@@ -6,6 +6,7 @@ const Tx = require('ethereumjs-tx').Transaction;
 const InterestVariables = artifacts.require("InterestVariables");
 const LiquidityPool = artifacts.require("LiquidityPool");
 const Exchange = artifacts.require("Exchange");
+const LiquidationManager = artifacts.require("LiquidationManager");
 const Token = artifacts.require("Token");
 const web3  = new Web3("http://localhost:7545");
 
@@ -54,15 +55,16 @@ contract('LiquidityPool', () => {
   let addDai = null;
   let ivarInstance = null;
   const ivar_address = web3.utils.toChecksumAddress('0x3Ce98c9524C753C4894bDa3c34a638D79bC00F45');
-  const privateKeyAcc1 = 'f150f305a793c102042767509d780283f090ff9650652623d6ee1509507e7054';
-  const privateKeyAcc3 = '300c0088a1d929a81cfc3c270f8c88c9d34941f399ff82d726e5c99ddf00ca3b';
-  const privateKeyAcc0 = 'c7ae604086af1add1829a6e38f3c7bc70c03934f02a4c198acc5ec02debf24d5';
+  const privateKeyAcc1 = 'acce882c6ae5beba331d7971e1536ec507a2a9afaa32b0ee01bf8e3d635c1211';
+  const privateKeyAcc3 = 'c7b6ed1f57314f75711194ecc806ef7afc62ec87571fc8a2bca1c29ce661d0d0';
+  const privateKeyAcc0 = '9fe1a6a9056e2eb8e2b14147fff412ec877f4e4f623d8734e6e2217884a63762';
   // do this before running the tests
   before(async () => {
     // NOW LIQUIDITY POOL HAS A CONSTRUCTOR ARGUMENT
-    exchangeInstance = await Exchange.deployed();
-    contractInstance = await LiquidityPool.deployed(ivar_address, exchangeInstance.address);
+    liquidationManager = await LiquidationManager.deployed();
     ivarInstance = await InterestVariables.deployed();
+    exchangeInstance = await Exchange.deployed();
+    contractInstance = await LiquidityPool.deployed(ivarInstance.address, exchangeInstance.address, liquidationManager.address);
     accounts = await web3.eth.getAccounts();
     console.log(contractInstance.address);
     console.log(exchangeInstance.address);
@@ -71,15 +73,15 @@ contract('LiquidityPool', () => {
     add = contractToken[0];
     const abi = contractToken[1];
     tokenInstance = new web3.eth.Contract(abi,add);
-    await contractInstance.createToken(add,50, 70, 1, 7, 200, 2,490, true);
-    //var syl = await contractInstance.tokensData(add);
+    await contractInstance.createtkn(add,50, 70, 1, 7, 200, 2,490, true);
+    //var syl = await contractInstance.tknsData(add);
 
     // deploy new token DAI
     var contractToken2 = await depolyToken('Dai', 'Dai');
     addDai = contractToken2[0];
     const abiDai = contractToken2[1];
     tokenInstanceDai = new web3.eth.Contract(abiDai,addDai);
-    await contractInstance.createToken(addDai,50, 70, 1, 7, 200, 2,1, true);
+    await contractInstance.createtkn(addDai,50, 70, 1, 7, 200, 2,1, true);
 
     // put tokens on exchange
     await exchangeInstance.createPool(add, 490, 'Weth');
@@ -99,7 +101,7 @@ contract('LiquidityPool', () => {
 
     await contractInstance.deposit(accounts[1], 4000, add).then(receipt =>{console.log(receipt);});
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
     var balance;
     await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
     var reserves;
@@ -115,28 +117,28 @@ contract('LiquidityPool', () => {
 
   });
 
-  it('should switch from deposit to collateral', async () => {
+  /*(it('should switch from deposit to collateral', async () => {
     //deposit from an address to contract
     await contractInstance.switchDepositToCollateral(accounts[1], 2000);
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
     var balance;
     await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
 
     assert.equal(blc.collateralAmount, 2000, "collateral amount incorrect");
     assert.equal(balance, 4000, "reserves balance incorrect");
-  });
+  });*/
 
   it('should deposit collateral', async () => {
     //deposit from an address to contract
     await contractInstance.depositCollateral(accounts[1], 20000, add);
 
-    var blc = await contractInstance.usersBalance(accounts[1]);
+    var blc = await contractInstance.uBal(accounts[1]);
     var balance;
     await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ balance = res; });
 
     // 20000 + 2000(swapped last time)
-    assert.equal(blc.collateralAmount, 22000, "collateral amount incorrect");
+    assert.equal(blc.collateralAmount.toNumber(), 20000, "collateral amount incorrect");
     assert.equal(balance, 24000, "reserves balance incorrect");
   });
 
@@ -150,7 +152,7 @@ contract('LiquidityPool', () => {
     await contractInstance.depositCollateral(accounts[3], 500000, addDai);
     // account 2 borrows 1000 Weth (Utilisation should be 50)
     await contractInstance.borrow(accounts[3], 500, add);
-    var blc = await contractInstance.usersBalance(accounts[3]);
+    var blc = await contractInstance.uBal(accounts[3]);
 
     var balance;
     await tokenInstance.methods.balanceOf(accounts[3]).call().then(res =>{ balance = res; });
@@ -160,25 +162,17 @@ contract('LiquidityPool', () => {
   });
 
   /* CURRENT SITUATION:
-  a1 collateral 22000 eth
-  a1 deposit 2000 eth
+  a1 collateral 20000 eth
+  a1 deposit 4000 eth
   a3 collateral 500 000 Dai
   a3 loan 500 Eth
   both eth and dai have 70% coll
   */
   it('should earn some interest', async () => {
-    //deposit from an address to contract
-
-    let ir = await contractInstance.getCummulatedInterestDeposit(accounts[1]);
-    console.log(ir.valueOf().toNumber());
-    let ir2 = await contractInstance.getCummulatedInterestLoan(accounts[3]);
-    console.log(ir2.valueOf().toNumber());
-
     let cummIRdep = await ivarInstance.getIRDepositTotalCummulation(add);
-    console.log(cummIRdep.valueOf().toNumber());
     let commIRBorr = await ivarInstance.getIRBorrowTotalCummulation(add);
-    console.log(commIRBorr.valueOf().toNumber());
-    assert.notEqual(ir.valueOf().toNumber(), 0, "interest accumulation is zero");
+    assert.notEqual(cummIRdep.valueOf().toNumber(), 0, "interest accumulation is zero");
+    assert.notEqual(commIRBorr.valueOf().toNumber(), 0, "interest accumulation is zero");
   });
 
   it('should repay some debt', async () => {
@@ -187,14 +181,14 @@ contract('LiquidityPool', () => {
     // repay 900 Eth
     await contractInstance.repay(accounts[3], 200);
     // check user balance and reserves
-    var blc = await contractInstance.usersBalance(accounts[3]);
-    var reserves = await contractInstance.tokensData(add);
+    var blc = await contractInstance.uBal(accounts[3]);
+    var reserves = await contractInstance.tknsData(add);
     assert.equal(blc.borrowedAmount, 300, "Borrowed amount not left to be 100");
     assert.equal(reserves.totalBorrowed, 300, "Reserves total borrowed not letf to 100");
   });
   /* CURRENT SITUATION:
-  a1 collateral 22000 eth
-  a1 deposit 2000 eth
+  a1 collateral 20000 eth
+  a1 deposit 4000 eth
   a3 collateral 500 000 Dai
   a3 loan 300 Eth
   both eth and dai have 70% coll
@@ -203,25 +197,25 @@ contract('LiquidityPool', () => {
     // redeem 1000 Eth
     await contractInstance.redeem(accounts[1], 1000);
     // check user balance and reserves
-    var blc = await contractInstance.usersBalance(accounts[1]);
-    var reserves = await contractInstance.tokensData(add);
+    var blc = await contractInstance.uBal(accounts[1]);
+    var reserves = await contractInstance.tknsData(add);
     var resblc;
     await tokenInstance.methods.balanceOf(contractInstance.address).call().then(res =>{ resblc = res; });
     console.log(blc.depositedAmount);
     console.log(reserves.totalDeposited);
     console.log(resblc);
-    assert.equal(blc.depositedAmount, 1000, "Deposited amount not left to be 1000");
-    assert.equal(reserves.totalDeposited, 1000, "Reserves total deposits not letf to 1000");
+    assert.equal(blc.depositedAmount.valueOf().toNumber(), 3000, "Deposited amount not left to be 1000");
+    assert.equal(reserves.totalDeposited.valueOf().toNumber(), 3000, "Reserves total deposits not letf to 1000");
   });
 
   it('should redeem some tokens collateralised', async () => {
     // redeem 1000 Eth
     await contractInstance.redeemCollateral(accounts[3], 200000);
     // check user balance and reserves
-    var blc = await contractInstance.usersBalance(accounts[3]);
-    var reserves = await contractInstance.tokensData(addDai);
-    assert.equal(blc.collateralAmount, 300000, "Collateral amount not left to be 1000");
-    assert.equal(reserves.totalCollateral, 300000, "Reserves total deposited not letf to 1000");
+    var blc = await contractInstance.uBal(accounts[3]);
+    var reserves = await contractInstance.tknsData(addDai);
+    assert.equal(blc.collateralAmount.valueOf().toNumber(), 300000, "Collateral amount not left to be 1000");
+    assert.equal(reserves.totalCollateral.valueOf().toNumber(), 300000, "Reserves total deposited not letf to 1000");
   });
 
   // test this by tracking the health factor of account3
@@ -231,7 +225,7 @@ contract('LiquidityPool', () => {
     console.log("This is the health factor");
     console.log(healthFactorBefore);
     await exchangeInstance.updatePrice(add, 800);
-    await contractInstance.updateTokenPrice(add);
+    await contractInstance.updatetknPrice(add);
     var healthFactorAfter = await contractInstance.getHealthFactor(accounts[3]);
     console.log("This is the health factor");
     console.log(healthFactorAfter);
@@ -246,19 +240,21 @@ contract('LiquidityPool', () => {
     await tokenInstanceDai.methods.balanceOf(accounts[0]).call().then(res =>{ balanceDaiBefore = res; });
 
     // calculate user's balances before liquidation
-    let userBalance0 = await contractInstance.usersBalance(accounts[3]);
+    let userBalance0 = await contractInstance.uBal(accounts[3]);
 
     // give permission to contract and liquidate
 
     await givePermissionToContract(accounts[0], privateKeyAcc0, contractInstance.address, 300, tokenInstance, add);
-    let ir = await contractInstance.getCummulatedInterestLoan(accounts[3])
+    let userDetails = await contractInstance.uBal(accounts[3]);
+    // (address tkn, uint cummulated_borr, uint init_ir_borrow)
+    let ir = await ivarInstance.getCumIrLoan(userDetails.tknBorrowed, userDetails.cummulated_borr, userDetails.init_ir_borrow);
     let cummulatedLoan = ir.valueOf().toNumber();
     await contractInstance.liquidate(accounts[3]);
 
     // check balance of account3 for collateral
-    let userBalance1 = await contractInstance.usersBalance(accounts[3]);
-    let collateralLeft = userBalance0.tokenCollateralised - (cummulatedLoan * 800 * 105)/100;
-    assert.equal(userBalance1.tokenCollateralised, collateralLeft, "Collateral left not equal to the expected amount");
+    let userBalance1 = await contractInstance.uBal(accounts[3]);
+    let collateralLeft = userBalance0.tknCollateralised - (cummulatedLoan * 800 * 105)/100;
+    assert.equal(userBalance1.tknCollateralised, collateralLeft, "Collateral left not equal to the expected amount");
     // check balance of account3 for loan
     assert.equal(userBalance1.borrowedAmount, 0, "User still owes money after liquidation");
 

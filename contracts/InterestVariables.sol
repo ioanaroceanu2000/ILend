@@ -140,5 +140,23 @@ contract InterestVariables {
     return SafeMath.add(SafeMath.div(SafeMath.mul(SafeMath.mul(power,ir),PRECISION),secYear),PRECISION);
   }
 
+  // get value of deposit with cummulated interest so far
+  function getCumIrDeposit(address tkn, uint cummulated_dep, uint init_ir_deposit) public view returns (uint){
+    // get initial deposit
+    if(init_ir_deposit == 0){
+      return 0;
+    }
+    return SafeMath.div(SafeMath.mul(cummulated_dep,getIRDepositTotalCummulation(tkn)),init_ir_deposit);
+  }
+
+  function getCumIrLoan(address tkn, uint cummulated_borr, uint init_ir_borrow) public view returns (uint){
+    // get initial deposit
+    if(init_ir_borrow == 0){
+      return 0;
+    }
+    // compute interest since depositing
+    return SafeMath.div(SafeMath.mul(cummulated_borr,getIRBorrowTotalCummulation(tkn)), init_ir_borrow);
+  }
+
 
 }

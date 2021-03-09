@@ -5,39 +5,44 @@ import "./Address.sol";
 import "./InterestVariables.sol";
 import "./Exchange.sol";
 import './SafeMath.sol';
+import './LiquidationManager.sol';
 
 contract LiquidityPool {
 
   InterestVariables private ivar;
   Exchange private exchange;
+  LiquidationManager private lm;
+  address public lm_add;
   mapping (address => bool) public trustedTkns;
 
 
-  constructor(address ivar_add, address exchange_add) public {
+  constructor(address ivar_add, address exchange_add, address lm_address) public {
     ivar = InterestVariables(ivar_add);
     exchange = Exchange(exchange_add);
+    lm = LiquidationManager(lm_address);
+    lm_add = lm_address;
     owner = msg.sender;
   }
 
   address private owner;
 
-  mapping (address => TokenCoreData) public tokensData;
-  mapping (address => UserBalance) public usersBalance;
+  mapping (address => tknCoreData) public tknsData;
+  mapping (address => UserBalance) public uBal;
 
   struct UserBalance{
     uint depositedAmount;
-    uint init_interest_deposit;
-    uint cummulated_ir_deposit;
-    address tokenDeposited;
+    uint init_ir_deposit;
+    uint cummulated_dep;
+    address tknDeposited;
     uint collateralAmount;
-    address tokenCollateralised;
+    address tknCollateralised;
     uint borrowedAmount;
-    uint init_interest_borrow;
-    uint cummulated_ir_borrow;
-    address tokenBorrowed;
+    uint init_ir_borrow;
+    uint cummulated_borr;
+    address tknBorrowed;
   }
 
-  struct TokenCoreData{
+  struct tknCoreData{
     uint price;
     uint utilisation;
     uint collateral_factor;
@@ -48,7 +53,7 @@ contract LiquidityPool {
   }
 
   modifier onlyOwner() {
-      require(msg.sender == owner, "OWLP");
+      require(msg.sender == owner || msg.sender == lm_add, "OWLP");
       _;
   }
 
@@ -58,8 +63,8 @@ contract LiquidityPool {
   );
 
 
-  // create token with all data
-  function createToken(address _token_address,
+  // create tkn with all data
+  function createtkn(address _tkn_address,
     uint _optimal_utilisation,
     uint _collateral_factor,
     uint _base_rate,
@@ -68,188 +73,157 @@ contract LiquidityPool {
     uint _spread,
     uint _price,
     bool truested) public{
-      require(Address.isContract(_token_address), 'Not a contract');
-      ivar.createToken(_token_address, _optimal_utilisation, _collateral_factor, _base_rate, _slope1, _slope2, _spread);
-      tokensData[_token_address] = TokenCoreData(_price, 0, _collateral_factor, 0, 0, 0, true);
-      trustedTkns[_token_address] = truested;
+      require(Address.isContract(_tkn_address), 'Not a contract');
+      ivar.createToken(_tkn_address, _optimal_utilisation, _collateral_factor, _base_rate, _slope1, _slope2, _spread);
+      tknsData[_tkn_address] = tknCoreData(_price, 0, _collateral_factor, 0, 0, 0, true);
+      trustedTkns[_tkn_address] = truested;
   }
 
-  // discards all loan details when borrowed token is NOT exchangable anymore
-  function tryDiscardLoan(address user) public returns (bool){
-    address tokenBorrowed = usersBalance[user].tokenBorrowed;
-    if(tokensData[tokenBorrowed].exchangeable == false && tokenBorrowed != address(0)){
-      // delete from reserves registers
-      tokensData[tokenBorrowed].totalBorrowed = SafeMath.sub(tokensData[tokenBorrowed].totalBorrowed, usersBalance[user].borrowedAmount);
-      address tokenColl = usersBalance[user].tokenCollateralised;
-      tokensData[tokenColl].totalCollateral = SafeMath.sub(tokensData[tokenColl].totalCollateral, usersBalance[user].collateralAmount);
-      // delete user's loan and collateral
-      usersBalance[user] = UserBalance(usersBalance[user].depositedAmount, usersBalance[user].init_interest_deposit, usersBalance[user].cummulated_ir_deposit, usersBalance[user].tokenDeposited, 0, address(0), 0, 0, 0, address(0));
-      // compound interest and update utilisation for the borrowed token
-      updateInterestRate(tokenBorrowed, tokensData[tokenBorrowed].utilisation);
-      return true;
+  // discards all loan details when borrowed tkn is NOT exchangable anymore
+  function tryDiscardLoan(address user) public{
+    address tknBorr = uBal[user].tknBorrowed;
+    address tknColl = uBal[user].tknCollateralised;
+    uint cumm = ivar.getCumIrLoan(tknBorr, uBal[user].cummulated_borr, uBal[user].init_ir_borrow);
+    if(!tknsData[tknBorr].exchangeable && tknBorr != address(0)){
+      ERC20(tknColl).transfer(lm_add,uBal[user].collateralAmount); // give collateral to LM
+      tknsData[tknColl].totalCollateral = SafeMath.sub(tknsData[tknColl].totalCollateral, uBal[user].collateralAmount);
+      uBal[user] = UserBalance(uBal[user].depositedAmount, uBal[user].init_ir_deposit, uBal[user].cummulated_dep, uBal[user].tknDeposited, 0, address(0), 0, 0, 0, address(0));
     }
-    return false;
+    if(!tknsData[tknColl].exchangeable && tknColl != address(0)){
+      lm.registerNeed(tknBorr, cumm);
+      //uBal[user] = UserBalance(uBal[user].depositedAmount, uBal[user].init_ir_deposit, uBal[user].cummulated_dep, uBal[user].tknDeposited, 0, address(0), 0, 0, 0, address(0));
+    }
+  }
+
+  function modifyReserves(address colltkn, uint minusColl, address borrtkn, uint minusBorr) public onlyOwner{
+    tknsData[borrtkn].totalBorrowed = SafeMath.sub(tknsData[borrtkn].totalBorrowed, minusBorr);
   }
 
   // update prices from the exchange
-  function updateTokenPrice(address token) public{
-    tokensData[token].price = exchange.getPrice(token);
+  function updatetknPrice(address tkn) public{
+    tknsData[tkn].price = exchange.getPrice(tkn);
   }
 
-  function checkExchangeability(address token) public{
-    tokensData[token].exchangeable = exchange.isExchangeable(token);
+  function checkExchangeability(address tkn) public{
+    tknsData[tkn].exchangeable = exchange.isExchangeable(tkn);
   }
 
-  // cummulate interest rate for the token
-  function updateInterestRate(address token, uint oldUtilisationRate) internal{
-    ivar.compoundIR(token, oldUtilisationRate);
+  // cummulate interest rate for the tkn
+  function updateInterestRate(address tkn, uint oldUtilisationRate) internal{
+    ivar.compoundIR(tkn, oldUtilisationRate);
     // if not updated means that the compounded IR exceeds uint
-    tokensData[token].utilisation = SafeMath.div(SafeMath.mul(tokensData[token].totalBorrowed, 100), tokensData[token].totalDeposited) ;
-  }
-
-  // add to liquidity pool of token
-  function addToReserves(address tokenId, uint amount, address payable user, bool isCollateral, bool isRepayment) internal{
-    ERC20(tokenId).transferFrom(user, address(this), amount);
-    if(isCollateral){
-      tokensData[tokenId].totalCollateral = SafeMath.add(amount, tokensData[tokenId].totalCollateral);
-    }else if(isRepayment){
-      tokensData[tokenId].totalBorrowed = SafeMath.sub(tokensData[tokenId].totalBorrowed, amount);
+    if(tknsData[tkn].totalDeposited != 0){
+      tknsData[tkn].utilisation = SafeMath.div(SafeMath.mul(tknsData[tkn].totalBorrowed, 100), tknsData[tkn].totalDeposited);
     }else{
-      tokensData[tokenId].totalDeposited = SafeMath.add(tokensData[tokenId].totalDeposited, amount);
+      tknsData[tkn].utilisation = 0;
+    }
+
+  }
+
+  // add to liquidity pool of tkn
+  function addToReserves(address tknId, uint amount, address payable user, bool isCollateral, bool isRepayment) internal{
+    ERC20(tknId).transferFrom(user, address(this), amount);
+    if(isCollateral){
+      tknsData[tknId].totalCollateral = SafeMath.add(amount, tknsData[tknId].totalCollateral);
+    }else if(isRepayment){
+      tknsData[tknId].totalBorrowed = SafeMath.sub(tknsData[tknId].totalBorrowed, amount);
+    }else{
+      tknsData[tknId].totalDeposited = SafeMath.add(tknsData[tknId].totalDeposited, amount);
     }
   }
 
-  // take out from liquidity pool of token
-  function takeFromReserves(address tokenId, uint amount, address payable user, bool isLoan) internal{
+  // take out from liquidity pool of tkn
+  function takeFromReserves(address tknId, uint amount, address payable user, bool isLoan) internal{
     if(isLoan){
-      tokensData[tokenId].totalBorrowed = SafeMath.add(tokensData[tokenId].totalBorrowed, amount);
+      tknsData[tknId].totalBorrowed = SafeMath.add(tknsData[tknId].totalBorrowed, amount);
     }else{ //redeeming
-      tokensData[tokenId].totalDeposited = SafeMath.sub(tokensData[tokenId].totalDeposited, amount);
+      tknsData[tknId].totalDeposited = SafeMath.sub(tknsData[tknId].totalDeposited, amount);
     }
-    ERC20(tokenId).transfer(user,  amount);
+    ERC20(tknId).transfer(user,  amount);
   }
 
-  function deposit(address payable user, uint amount, address tokenId) public{
-    //make sure users only have deposits in one token
-    require(usersBalance[user].tokenDeposited == tokenId || usersBalance[user].depositedAmount == 0, "Already has a deposit");
-    //make sure token is supported
-    require(tokensData[tokenId].price != 0, "Not supported");
+  function deposit(address payable user, uint amount, address tknId) public{
+    //make sure users only have deposits in one tkn
+    require(uBal[user].tknDeposited == tknId || uBal[user].depositedAmount == 0, "Already has a deposit");
+    //make sure tkn is supported
+    require(tknsData[tknId].price != 0, "Not supported");
 
-    // make sure token is exchangeable
-    checkExchangeability(tokenId);
+    // make sure tkn is exchangeable
+    checkExchangeability(tknId);
     tryDiscardLoan(user);
-    if(tokensData[tokenId].exchangeable != true){
+    if(!tknsData[tknId].exchangeable){
       return;
     }
 
-    addToReserves(tokenId, amount, user, false, false);
-    updateInterestRate(tokenId,tokensData[tokenId].utilisation);
-    usersBalance[user].tokenDeposited = tokenId;
-    usersBalance[user].depositedAmount = SafeMath.add(amount, usersBalance[user].depositedAmount);
-    usersBalance[user].cummulated_ir_deposit = SafeMath.add(amount, getCummulatedInterestDeposit(user));
-    usersBalance[user].init_interest_deposit = ivar.getIRDepositTotalCummulation(tokenId);
+    addToReserves(tknId, amount, user, false, false);
+    updateInterestRate(tknId,tknsData[tknId].utilisation);
+    uBal[user].tknDeposited = tknId;
+    uBal[user].depositedAmount = SafeMath.add(amount, uBal[user].depositedAmount);
+    uBal[user].cummulated_dep = SafeMath.add(amount, ivar.getCumIrDeposit(uBal[user].tknDeposited, uBal[user].cummulated_dep, uBal[user].init_ir_deposit));
+    uBal[user].init_ir_deposit = ivar.getIRDepositTotalCummulation(tknId);
   }
 
-  function borrow(address payable user, uint amount, address tokenId) public{
-    //make sure token is supported
-    require(tokensData[tokenId].price != 0, "Not supported");
+  function borrow(address payable user, uint amount, address tknId) public{
+    //make sure tkn is supported
+    require(tknsData[tknId].price != 0, "Not supported");
 
-    // make sure token is exchangeable
-    checkExchangeability(tokenId); // call at exchange 5
+    // make sure tkn is exchangeable
+    checkExchangeability(tknId); // call at exchange 5
     tryDiscardLoan(user);
-    if(tokensData[tokenId].exchangeable != true){
+    if(!tknsData[tknId].exchangeable){
       return;
     }
 
-    // make sure total borrow plus the amount to be borrowed is less than totalDeposited
-    require(tokensData[tokenId].totalDeposited >= SafeMath.add(tokensData[tokenId].totalBorrowed, amount), "Overborrowings");
-    //make sure users only have borrowings in one token
-    require(usersBalance[user].tokenBorrowed == tokenId || usersBalance[user].borrowedAmount == 0, "Already has loan");
-    // make sure it borrowes less than the collateral _collateral_factor
-    address collateralToken = usersBalance[user].tokenCollateralised;
-    uint healthFactorAfter = getHealthFactorUnsafe(collateralToken, usersBalance[user].collateralAmount, tokenId, SafeMath.add(amount, usersBalance[user].borrowedAmount));
-    require(healthFactorAfter > 1000, "Cannot borrow over collateral factor");
+    require(tknsData[tknId].totalDeposited >= SafeMath.add(tknsData[tknId].totalBorrowed, amount), "Overborrowings");
 
-    usersBalance[user].tokenBorrowed = tokenId;
-    usersBalance[user].borrowedAmount = SafeMath.add(usersBalance[user].borrowedAmount, amount);
-    usersBalance[user].cummulated_ir_borrow = SafeMath.add(amount, getCummulatedInterestLoan(user));
-    takeFromReserves(tokenId, amount, user, true); // call at ETh a9
-    updateInterestRate(tokenId,tokensData[tokenId].utilisation); // call at IR cb
-    usersBalance[user].init_interest_borrow = ivar.getIRBorrowTotalCummulation(tokenId); 
+    require(uBal[user].tknBorrowed == tknId || uBal[user].borrowedAmount == 0, "Already has loan");
+
+    address collateraltkn = uBal[user].tknCollateralised;
+    uint healthFactorAfter = getHealthFactorUnsafe(collateraltkn, uBal[user].collateralAmount, tknId, SafeMath.add(amount, uBal[user].borrowedAmount));
+    require(healthFactorAfter > 1000, "Unhealthy");
+
+    uBal[user].tknBorrowed = tknId;
+    uBal[user].borrowedAmount = SafeMath.add(uBal[user].borrowedAmount, amount);
+    uBal[user].cummulated_borr = SafeMath.add(amount, ivar.getCumIrLoan(tknId, uBal[user].cummulated_borr, uBal[user].init_ir_borrow));
+    takeFromReserves(tknId, amount, user, true);
+    updateInterestRate(tknId,tknsData[tknId].utilisation);
+    uBal[user].init_ir_borrow = ivar.getIRBorrowTotalCummulation(tknId);
     emit Loan(user, now);
   }
 
-  function depositCollateral(address payable user, uint amount, address tokenId) public{
-    //make sure users only have deposits in one token
-    require(usersBalance[user].tokenCollateralised == address(0) || usersBalance[user].tokenCollateralised == tokenId, "Already has collateral");
-    //make sure token is supported
-    require(tokensData[tokenId].price != 0, "Not supported");
+  function depositCollateral(address payable user, uint amount, address tknId) public{
+    require(uBal[user].tknCollateralised == address(0) || uBal[user].tknCollateralised == tknId, "Already has collateral");
 
-    // make sure token is exchangeable
-    checkExchangeability(tokenId);
+    require(tknsData[tknId].price != 0, "Not supported");
+
+    checkExchangeability(tknId);
     tryDiscardLoan(user);
-    if(tokensData[tokenId].exchangeable != true){
+    if(!tknsData[tknId].exchangeable){
       return;
     }
 
-    require(trustedTkns[tokenId] || SafeMath.add(tokensData[tokenId].totalCollateral, amount) <= tokensData[tokenId].totalBorrowed, "Token borrowed less than collateralized");
+    require(trustedTkns[tknId] || SafeMath.add(tknsData[tknId].totalCollateral, amount) <= tknsData[tknId].totalBorrowed, "borrowed less than collateralized");
 
-    addToReserves(tokenId, amount, user, true, false);
-    usersBalance[user].tokenCollateralised = tokenId;
-    usersBalance[user].collateralAmount = SafeMath.add(usersBalance[user].collateralAmount, amount);
-  }
-
-  // Currently switch from deposit to collaterall can only be done from the principle depositedAmount
-  // not from the accumulated interest
-  function switchDepositToCollateral(address payable user, uint amount) public{
-    address tokenId = usersBalance[user].tokenDeposited;
-    //make sure token is supported
-    require(tokensData[tokenId].price != 0, "Not supported");
-
-    // make sure token is exchangeable
-    checkExchangeability(tokenId);
-    tryDiscardLoan(user);
-    if(tokensData[tokenId].exchangeable != true){
-      return;
-    }
-    require(trustedTkns[tokenId] || SafeMath.add(tokensData[tokenId].totalCollateral, amount) <= tokensData[tokenId].totalBorrowed, "Token borrowed less than collateralized");
-    // make sure deposited is not zero
-    require(usersBalance[user].depositedAmount >= amount, "Deposit is not enough");
-    // make sure collateral is not in another token
-    require(usersBalance[user].tokenCollateralised == address(0) || (usersBalance[user].tokenCollateralised == tokenId && usersBalance[user].tokenDeposited == tokenId), "Collateral token is not deposit token");
-    // make sure subtracting amount from deposits does not make the total deposited less than total borrow
-    require(SafeMath.sub(tokensData[tokenId].totalDeposited,amount) > tokensData[tokenId].totalBorrowed, "Implies overborrowings");
-
-    usersBalance[user].depositedAmount = SafeMath.sub(usersBalance[user].depositedAmount, amount);
-    usersBalance[user].cummulated_ir_deposit = SafeMath.sub(getCummulatedInterestDeposit(user), amount);
-
-    usersBalance[user].tokenCollateralised = tokenId;
-    tokensData[tokenId].totalCollateral = SafeMath.add(tokensData[tokenId].totalCollateral, amount); // increase reserves collateral
-    tokensData[tokenId].totalDeposited = SafeMath.sub(tokensData[tokenId].totalDeposited, amount); // decrease reserves deposits
-    updateInterestRate(tokenId,tokensData[tokenId].utilisation);
-    usersBalance[user].collateralAmount = SafeMath.add(usersBalance[user].collateralAmount, amount);
+    addToReserves(tknId, amount, user, true, false);
+    uBal[user].tknCollateralised = tknId;
+    uBal[user].collateralAmount = SafeMath.add(uBal[user].collateralAmount, amount);
   }
 
   function repay(address payable user, uint amount) public{
-    // check if there is something to repay
-    require(usersBalance[user].borrowedAmount != 0, "No loan to repay");
-
-    address token = usersBalance[user].tokenBorrowed;
-
-    // make sure token is exchangeable
-    checkExchangeability(token);
+    require(uBal[user].borrowedAmount != 0, "No loan to repay");
+    address tkn = uBal[user].tknBorrowed;
+    checkExchangeability(tkn);
     tryDiscardLoan(user);
-    if(tokensData[token].exchangeable != true){
+    if(!tknsData[tkn].exchangeable){
       return;
     }
 
-    require(trustedTkns[token] || SafeMath.sub(tokensData[token].totalBorrowed, amount) >= tokensData[token].totalCollateral, "Token borrowed less than collateralized");
-    // check if given amount does not exceed the owed amount
-    uint cummulatedInterest = getCummulatedInterestLoan(user); // cummulated amount owed
+    require(trustedTkns[tkn] || SafeMath.sub(tknsData[tkn].totalBorrowed, amount) >= tknsData[tkn].totalCollateral, "borrowed less than collateralized");
+    uint cummulatedInterest = ivar.getCumIrLoan(tkn, uBal[user].cummulated_borr, uBal[user].init_ir_borrow); // cummulated amount owed
     require(cummulatedInterest >= amount, "Repaid too much");
 
     // what is not subtracted from the totalBorrowed of reserves is extra
-    uint borrowedAmount = usersBalance[user].borrowedAmount;
+    uint borrowedAmount = uBal[user].borrowedAmount;
     uint toPool = amount;
     uint extra = 0;
     if(amount > borrowedAmount){
@@ -258,32 +232,29 @@ contract LiquidityPool {
     }
 
     // repay what was borrowed to reserves
-    addToReserves(token, toPool, user,false, true);
+    addToReserves(tkn, toPool, user,false, true);
     // give interest payment (extra) to reserves as well
-    ERC20(token).transferFrom(user, address(this), extra);
+    ERC20(tkn).transferFrom(user, address(this), extra);
 
     // reinitialise initial interest
-    usersBalance[user].borrowedAmount = SafeMath.sub(usersBalance[user].borrowedAmount, toPool);
-    usersBalance[user].cummulated_ir_borrow = SafeMath.sub(cummulatedInterest ,amount);
-    usersBalance[user].init_interest_borrow = ivar.getIRBorrowTotalCummulation(token);
-    // modify utilisation rate and interest
-    updateInterestRate(token, tokensData[token].utilisation);
+    uBal[user].borrowedAmount = SafeMath.sub(uBal[user].borrowedAmount, toPool);
+    uBal[user].cummulated_borr = SafeMath.sub(cummulatedInterest ,amount);
+    uBal[user].init_ir_borrow = ivar.getIRBorrowTotalCummulation(tkn);
+    updateInterestRate(tkn, tknsData[tkn].utilisation);
   }
 
   function redeem(address payable user, uint amount) public{
 
-    address token = usersBalance[user].tokenDeposited;
+    address tkn = uBal[user].tknDeposited;
 
-    // chack exchageability but do not require token to be exchangable
-    checkExchangeability(token);
+    checkExchangeability(tkn);
     tryDiscardLoan(user);
 
-    // check if given amount does not exceed the deposit+interest
-    uint cummulatedInterest = getCummulatedInterestDeposit(user); // cummulated amount owed
+    uint cummulatedInterest = ivar.getCumIrDeposit(uBal[user].tknDeposited, uBal[user].cummulated_dep, uBal[user].init_ir_deposit);
     require(cummulatedInterest >= amount, "Redeemed too much");
 
     // split the amount requested
-    uint depositedAmount = usersBalance[user].depositedAmount;
+    uint depositedAmount = uBal[user].depositedAmount;
     uint fromPool = amount;
     uint extra = 0;
     if(amount > depositedAmount){
@@ -291,122 +262,90 @@ contract LiquidityPool {
       extra = SafeMath.sub(amount, depositedAmount);
     }
 
-    // check if enough liquidity in reserves
-    require( SafeMath.sub(tokensData[token].totalDeposited, fromPool) >= tokensData[token].totalBorrowed, "Implies overborrowing");
-    // check for extra liquidity obtained from interest rate payments on loans
-    uint reservesBalance = ERC20(token).balanceOf(address(this));
-    // if extra redeemed, check if enough in extra reserves
-    require(extra == 0 || extra < SafeMath.sub(SafeMath.sub(reservesBalance, tokensData[token].totalDeposited),tokensData[token].totalCollateral), "Not enough extra reserves");
+    require( SafeMath.sub(tknsData[tkn].totalDeposited, fromPool) >= tknsData[tkn].totalBorrowed, "Overborrowing");
+    uint reservesBalance = ERC20(tkn).balanceOf(address(this));
+    require(extra == 0 || extra < SafeMath.sub(SafeMath.sub(reservesBalance, tknsData[tkn].totalDeposited),tknsData[tkn].totalCollateral), "Not enough extra reserves");
 
     // update user's deposit variables
-    usersBalance[user].depositedAmount = SafeMath.sub(usersBalance[user].depositedAmount, fromPool);
-    usersBalance[user].cummulated_ir_deposit = SafeMath.sub(cummulatedInterest, amount);
-    usersBalance[user].init_interest_deposit = ivar.getIRDepositTotalCummulation(token);
+    uBal[user].depositedAmount = SafeMath.sub(uBal[user].depositedAmount, fromPool);
+    uBal[user].cummulated_dep = SafeMath.sub(cummulatedInterest, amount);
+    uBal[user].init_ir_deposit = ivar.getIRDepositTotalCummulation(tkn);
 
-    // give from reserves
-    takeFromReserves(token,fromPool,user,false);
-    // transfer extra
-    ERC20(token).transfer(user,extra);
-    // modify utilisation rate and interest
-    updateInterestRate(token, tokensData[token].utilisation);
+    takeFromReserves(tkn,fromPool,user,false);
+    ERC20(tkn).transfer(user,extra);
+    updateInterestRate(tkn, tknsData[tkn].utilisation);
   }
 
   function redeemCollateral(address payable user, uint amount) public{
-    // chack exchageability but do not require token to be exchangable
-    address collateralToken = usersBalance[user].tokenCollateralised;
-    address borrowedToken = usersBalance[user].tokenBorrowed;
-    checkExchangeability(collateralToken);
-    checkExchangeability(borrowedToken);
+    // chack exchageability but do not require tkn to be exchangable
+    address collateraltkn = uBal[user].tknCollateralised;
+    address borrowedtkn = uBal[user].tknBorrowed;
+    checkExchangeability(collateraltkn);
+    checkExchangeability(borrowedtkn);
     tryDiscardLoan(user);
-    if(tokensData[borrowedToken].exchangeable != true){
+    if(!tknsData[borrowedtkn].exchangeable){
       return;
     }
 
-    // check if there is enough to redeem
-    require(usersBalance[user].collateralAmount >= amount,"Redeemed too much");
-    // check if redeeming would not affect the health factor
-    uint healthFactorAfter = getHealthFactorUnsafe(collateralToken, SafeMath.sub(usersBalance[user].collateralAmount, amount), borrowedToken, getCummulatedInterestLoan(user));
-    require( healthFactorAfter > 1000, "Health factor would be too low");
-    // do changes in user's balances
-    usersBalance[user].collateralAmount = SafeMath.sub(usersBalance[user].collateralAmount, amount);
-    // do changes in reserves data
-    tokensData[collateralToken].totalCollateral = SafeMath.sub(tokensData[collateralToken].totalCollateral, amount);
-    ERC20(collateralToken).transfer(user,amount);
+    require(uBal[user].collateralAmount >= amount,"Redeemed too much");
+    uint healthFactorAfter = getHealthFactorUnsafe(collateraltkn, SafeMath.sub(uBal[user].collateralAmount, amount), borrowedtkn, ivar.getCumIrLoan(borrowedtkn, uBal[user].cummulated_borr, uBal[user].init_ir_borrow));
+    require( healthFactorAfter > 1000, "Unhealthy");
+    uBal[user].collateralAmount = SafeMath.sub(uBal[user].collateralAmount, amount);
+    tknsData[collateraltkn].totalCollateral = SafeMath.sub(tknsData[collateraltkn].totalCollateral, amount);
+    ERC20(collateraltkn).transfer(user,amount);
   }
 
-  // get value of deposit with cummulated interest so far
-  function getCummulatedInterestDeposit(address user) public view returns (uint){
-    // get initial deposit
-    address token = usersBalance[user].tokenDeposited;
-    if(usersBalance[user].init_interest_deposit == 0){
-      return 0;
-    }
-    // compute interest since depositing
-    return SafeMath.div(SafeMath.mul(usersBalance[user].cummulated_ir_deposit,ivar.getIRDepositTotalCummulation(token)), usersBalance[user].init_interest_deposit);
-  }
-
-  // get value of deposit with cummulated interest so far
-  function getCummulatedInterestLoan(address user) public view returns (uint){
-    // get initial deposit
-    address token = usersBalance[user].tokenBorrowed;
-    if(usersBalance[user].init_interest_borrow == 0){
-      return 0;
-    }
-    // compute interest since depositing
-    return SafeMath.div(SafeMath.mul(usersBalance[user].cummulated_ir_borrow,ivar.getIRBorrowTotalCummulation(token)), usersBalance[user].init_interest_borrow);
+  // returns health factor *1000
+  function getHealthFactorUnsafe(address colltkn, uint collAmount, address borrtkn, uint owed) internal returns(uint){
+    // maximum y=the user can borrow against their collateral (*100)
+    updatetknPrice(colltkn);
+    updatetknPrice(borrtkn);
+    uint upperLimitLoanUSD100 = SafeMath.mul(SafeMath.mul(tknsData[colltkn].collateral_factor, tknsData[colltkn].price), collAmount);
+    // how much they owe in USD
+    return SafeMath.div(SafeMath.mul(upperLimitLoanUSD100,10),SafeMath.mul(owed, tknsData[borrtkn].price));
   }
 
   // returns health factor *1000
   function getHealthFactor(address user) public view returns(uint){
-    address collToken = usersBalance[user].tokenCollateralised;
-    address borrToken = usersBalance[user].tokenBorrowed;
+    address collToken = uBal[user].tknCollateralised;
+    address borrToken = uBal[user].tknBorrowed;
     // maximum y=the user can borrow against their collateral (*100)
-    uint upperLimitLoanUSD100 = SafeMath.mul(SafeMath.mul(tokensData[collToken].collateral_factor, tokensData[collToken].price), usersBalance[user].collateralAmount);
-    uint cummulatedLoan = getCummulatedInterestLoan(user);
-    return SafeMath.div(SafeMath.mul(upperLimitLoanUSD100,10),SafeMath.mul(cummulatedLoan,tokensData[borrToken].price));
-  }
-
-  // returns health factor *1000
-  function getHealthFactorUnsafe(address collToken, uint collAmount, address borrToken, uint owed) internal returns(uint){
-    // maximum y=the user can borrow against their collateral (*100)
-    updateTokenPrice(collToken);
-    updateTokenPrice(borrToken);
-    uint upperLimitLoanUSD100 = SafeMath.mul(SafeMath.mul(tokensData[collToken].collateral_factor, tokensData[collToken].price), collAmount);
-    // how much they owe in USD
-    return SafeMath.div(SafeMath.mul(upperLimitLoanUSD100,10),SafeMath.mul(owed, tokensData[borrToken].price));
+    uint upperLimitLoanUSD100 = SafeMath.mul(SafeMath.mul(tknsData[collToken].collateral_factor, tknsData[collToken].price), uBal[user].collateralAmount);
+    uint cummulatedLoan = ivar.getCumIrLoan(borrToken, uBal[user].cummulated_borr, uBal[user].init_ir_borrow);
+    return SafeMath.div(SafeMath.mul(upperLimitLoanUSD100,10),SafeMath.mul(cummulatedLoan,tknsData[borrToken].price));
   }
 
   function liquidate(address user) public{
     // check if the account has health Factor > 1
-    address collToken = usersBalance[user].tokenCollateralised;
-    address borrToken = usersBalance[user].tokenBorrowed;
-    checkExchangeability(borrToken);
+    address colltkn = uBal[user].tknCollateralised;
+    address borrtkn = uBal[user].tknBorrowed;
+    checkExchangeability(borrtkn);
     tryDiscardLoan(user);
-    if(tokensData[borrToken].exchangeable != true){
+    if(!tknsData[borrtkn].exchangeable){
       return;
     }
-    updateTokenPrice(collToken);
-    updateTokenPrice(borrToken);
-    uint cummulatedLoan = getCummulatedInterestLoan(user);
-    uint healthFactor = getHealthFactorUnsafe(collToken, usersBalance[user].collateralAmount, borrToken, cummulatedLoan);
-    require(healthFactor < 1000, "Safe health factor");
+    updatetknPrice(colltkn);
+    updatetknPrice(borrtkn);
+    uint cummulatedLoan = ivar.getCumIrLoan(borrtkn, uBal[user].cummulated_borr, uBal[user].init_ir_borrow);
+    uint healthFactor = getHealthFactorUnsafe(colltkn, uBal[user].collateralAmount, borrtkn, cummulatedLoan);
+    require(healthFactor < 1000, "Safe HF");
 
     // get money from sender (loan)
     // sender has to give me the amounnt owed
-    ERC20(borrToken).transferFrom(msg.sender, address(this), cummulatedLoan);
+    ERC20(borrtkn).transferFrom(msg.sender, address(this), cummulatedLoan);
 
     // send to sender (collateral)
-    // sender has to receive the token collateralised correspondend with amount owed*1.05
-    uint toLiquidator = SafeMath.div(SafeMath.mul(SafeMath.mul(cummulatedLoan, tokensData[borrToken].price),105), SafeMath.mul(tokensData[collToken].price, 100));
+    // sender has to receive the tkn collateralised correspondend with amount owed*1.05
+    uint toLiquidator = SafeMath.div(SafeMath.mul(SafeMath.mul(cummulatedLoan, tknsData[borrtkn].price),105), SafeMath.mul(tknsData[colltkn].price, 100));
 
     // modify details
-    usersBalance[user].borrowedAmount = 0;
-    usersBalance[user].cummulated_ir_borrow = 0;
-    usersBalance[user].collateralAmount = SafeMath.sub(usersBalance[user].collateralAmount, toLiquidator);
-    tokensData[borrToken].totalBorrowed = SafeMath.sub(tokensData[borrToken].totalBorrowed, cummulatedLoan);
-    tokensData[collToken].totalCollateral = SafeMath.sub(tokensData[collToken].totalCollateral, toLiquidator);
+    uBal[user].borrowedAmount = 0;
+    uBal[user].cummulated_borr = 0;
+    uBal[user].collateralAmount = SafeMath.sub(uBal[user].collateralAmount, toLiquidator);
+    tknsData[borrtkn].totalBorrowed = SafeMath.sub(tknsData[borrtkn].totalBorrowed, cummulatedLoan);
+    tknsData[colltkn].totalCollateral = SafeMath.sub(tknsData[colltkn].totalCollateral, toLiquidator);
 
-    ERC20(collToken).transfer(msg.sender, toLiquidator);
+    ERC20(colltkn).transfer(msg.sender, toLiquidator);
   }
 
 
